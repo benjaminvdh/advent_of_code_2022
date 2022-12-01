@@ -1,5 +1,6 @@
 mod parsing;
 mod part_1;
+mod part_2;
 
 use crate::solving::*;
 
@@ -19,7 +20,7 @@ impl crate::Solver for Solver {
         part_1::solve(input)
     }
 
-    fn part_2(_input: &Self::Input) -> SolveResult {
-        Err(SolveError::Unimplemented)
+    fn part_2(input: &Self::Input) -> SolveResult {
+        part_2::solve(input)
     }
 }

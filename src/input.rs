@@ -24,7 +24,7 @@ impl Display for InputError {
 }
 
 pub fn get_input() -> Result<BufReader<File>, InputError> {
-    let arg = env::args_os().next().ok_or(InputError::NoInputSpecified)?;
+    let arg = env::args_os().nth(1).ok_or(InputError::NoInputSpecified)?;
     let file = File::open(arg)?;
     Ok(BufReader::new(file))
 }

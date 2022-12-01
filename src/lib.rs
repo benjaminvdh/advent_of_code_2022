@@ -1,3 +1,5 @@
+pub mod day_1;
+
 mod input;
 mod parsing;
 mod solving;

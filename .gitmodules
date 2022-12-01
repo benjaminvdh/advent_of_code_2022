@@ -1,0 +1,6 @@
+[submodule "tests"]
+	path = tests
+	url = ../tests
+[submodule "input"]
+	path = input
+	url = ../input

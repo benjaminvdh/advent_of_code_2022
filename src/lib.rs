@@ -9,7 +9,8 @@ use input::InputError;
 use parsing::ParseError;
 use solving::{Solver, SolveResult};
 
-enum AocError {
+#[derive(Debug)]
+pub enum AocError {
     Input(InputError),
     Io(io::Error),
     Parsing(ParseError),
@@ -59,7 +60,7 @@ fn solve<S: Solver>() -> Result<(SolveResult, SolveResult), AocError> {
     solve_on_input::<S, _>(input)
 }
 
-fn solve_on_input<S: Solver, R: Read>(input: BufReader<R>) -> Result<(SolveResult, SolveResult), AocError> {
+pub fn solve_on_input<S: Solver, R: Read>(input: BufReader<R>) -> Result<(SolveResult, SolveResult), AocError> {
     let input = S::parse(input)?;
 
     Ok((S::part_1(&input), S::part_2(&input)))

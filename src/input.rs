@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 use std::io::{self, BufReader};
 
+#[derive(Debug)]
 pub enum InputError {
     Io(io::Error),
     NoInputSpecified

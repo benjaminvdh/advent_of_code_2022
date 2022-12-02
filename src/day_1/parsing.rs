@@ -6,12 +6,8 @@ pub fn parse<R: Read>(mut input: BufReader<R>) -> Result<crate::day_1::Input, Pa
 
     let elves = contents
         .split("\n\n")
-        .map(|elf| {
-            elf.lines()
-                .map(|line| line.parse::<u32>())
-                .collect::<Result<Vec<_>, _>>()
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+        .map(|elf| elf.lines().map(|line| line.parse()).collect())
+        .collect::<Result<_, _>>()?;
 
     Ok(elves)
 }

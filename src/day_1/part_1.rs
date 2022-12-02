@@ -3,9 +3,8 @@ use crate::solving::*;
 pub fn solve(input: crate::day_1::Input) -> Result<u64, SolveError> {
     input
         .iter()
-        .map(|calories| calories.iter().sum::<u32>())
+        .map(|calories| calories.iter().sum())
         .max()
-        .map(|calories| calories as u64)
         .ok_or(SolveError::EmptyInput)
 }
 

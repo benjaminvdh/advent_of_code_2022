@@ -1,16 +1,11 @@
 use crate::solving::*;
 
 pub fn solve(input: crate::day_1::Input) -> Result<u64, SolveError> {
-    let mut calories: Vec<u32> = input
-        .iter()
-        .map(|calories| calories.iter().sum::<u32>())
-        .collect();
+    let mut calories: Vec<u64> = input.iter().map(|calories| calories.iter().sum()).collect();
 
     calories.sort_unstable();
 
-    let sum: u32 = calories.iter().rev().take(3).sum();
-
-    Ok(sum as u64)
+    Ok(calories.iter().rev().take(3).sum())
 }
 
 #[cfg(test)]

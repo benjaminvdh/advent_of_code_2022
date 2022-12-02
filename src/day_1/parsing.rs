@@ -42,7 +42,13 @@ mod tests {
 10000";
 
         let parsed_input = parse(BufReader::new(input.as_bytes())).unwrap();
-        let ref_input = vec![vec![1000, 2000, 3000], vec![4000], vec![5000, 6000], vec![7000, 8000, 9000], vec![10000]];
+        let ref_input = vec![
+            vec![1000, 2000, 3000],
+            vec![4000],
+            vec![5000, 6000],
+            vec![7000, 8000, 9000],
+            vec![10000],
+        ];
         assert_eq!(parsed_input, ref_input);
     }
 }

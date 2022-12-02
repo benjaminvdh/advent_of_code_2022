@@ -5,8 +5,8 @@ mod input;
 mod parsing;
 mod solving;
 
-use std::fs::File;
 use std::fmt::{self, Display, Formatter};
+use std::fs::File;
 use std::io::{self, BufReader, Read};
 
 use input::InputError;

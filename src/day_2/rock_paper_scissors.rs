@@ -45,11 +45,12 @@ pub struct Round {
 
 impl Round {
     pub fn get_score(&self) -> u64 {
-        self.player.get_value() + match self.player.cmp(&self.opponent) {
-            Ordering::Less => 0,
-            Ordering::Equal => 3,
-            Ordering::Greater => 6,
-        }
+        self.player.get_value()
+            + match self.player.cmp(&self.opponent) {
+                Ordering::Less => 0,
+                Ordering::Equal => 3,
+                Ordering::Greater => 6,
+            }
     }
 
     pub fn to_strategy(&self) -> Self {
@@ -70,7 +71,10 @@ impl Round {
             },
         };
 
-        Self { opponent: self.opponent, player }
+        Self {
+            opponent: self.opponent,
+            player,
+        }
     }
 }
 
@@ -83,19 +87,28 @@ mod tests {
 
         #[test]
         fn rock_vs_paper() {
-            let round = Round { opponent: Shape::Rock, player: Shape::Paper };
+            let round = Round {
+                opponent: Shape::Rock,
+                player: Shape::Paper,
+            };
             assert_eq!(round.get_score(), 8);
         }
 
         #[test]
         fn paper_vs_rock() {
-            let round = Round { opponent: Shape::Paper, player: Shape::Rock };
+            let round = Round {
+                opponent: Shape::Paper,
+                player: Shape::Rock,
+            };
             assert_eq!(round.get_score(), 1);
         }
 
         #[test]
         fn scissors_vs_scissors() {
-            let round = Round { opponent: Shape::Scissors, player: Shape::Scissors };
+            let round = Round {
+                opponent: Shape::Scissors,
+                player: Shape::Scissors,
+            };
             assert_eq!(round.get_score(), 6);
         }
     }
@@ -105,19 +118,28 @@ mod tests {
 
         #[test]
         fn rock_vs_paper() {
-            let round = Round { opponent: Shape::Rock, player: Shape::Paper };
+            let round = Round {
+                opponent: Shape::Rock,
+                player: Shape::Paper,
+            };
             assert_eq!(round.to_strategy().get_score(), 4);
         }
 
         #[test]
         fn paper_vs_rock() {
-            let round = Round { opponent: Shape::Paper, player: Shape::Rock };
+            let round = Round {
+                opponent: Shape::Paper,
+                player: Shape::Rock,
+            };
             assert_eq!(round.to_strategy().get_score(), 1);
         }
 
         #[test]
         fn scissors_vs_scissors() {
-            let round = Round { opponent: Shape::Scissors, player: Shape::Scissors };
+            let round = Round {
+                opponent: Shape::Scissors,
+                player: Shape::Scissors,
+            };
             assert_eq!(round.to_strategy().get_score(), 7);
         }
     }

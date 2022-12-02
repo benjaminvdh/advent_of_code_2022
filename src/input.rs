@@ -6,7 +6,7 @@ use std::io;
 #[derive(Debug)]
 pub enum InputError {
     Io(io::Error),
-    NoInputSpecified
+    NoInputSpecified,
 }
 
 impl From<io::Error> for InputError {

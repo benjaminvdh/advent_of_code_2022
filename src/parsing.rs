@@ -1,6 +1,6 @@
-use std::num::ParseIntError;
 use std::fmt::{self, Display, Formatter};
 use std::io;
+use std::num::ParseIntError;
 
 pub use std::io::{BufRead, BufReader, Read};
 

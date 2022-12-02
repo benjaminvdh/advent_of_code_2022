@@ -72,14 +72,14 @@ fn get_input() -> Result<File, AocError> {
 
 pub fn solve_part_1<S: Solver, R: Read>(input: R) -> Result<u64, AocError> {
     let input = S::parse(BufReader::new(input))?;
-    let result = S::part_1(&input)?;
+    let result = S::part_1(input)?;
 
     Ok(result)
 }
 
 pub fn solve_part_2<S: Solver, R: Read>(input: R) -> Result<u64, AocError> {
     let input = S::parse(BufReader::new(input))?;
-    let result = S::part_2(&input)?;
+    let result = S::part_2(input)?;
 
     Ok(result)
 }

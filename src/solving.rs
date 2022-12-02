@@ -26,11 +26,11 @@ pub trait Solver {
 
     fn parse<R: Read>(input: BufReader<R>) -> Result<Self::Input, ParseError>;
 
-    fn part_1(_input: &Self::Input) -> SolveResult {
+    fn part_1(_input: Self::Input) -> SolveResult {
         Err(SolveError::Unimplemented)
     }
 
-    fn part_2(_input: &Self::Input) -> SolveResult {
+    fn part_2(_input: Self::Input) -> SolveResult {
         Err(SolveError::Unimplemented)
     }
 }

@@ -16,11 +16,11 @@ impl crate::Solver for Solver {
         parsing::parse(input)
     }
 
-    fn part_1(input: &Self::Input) -> SolveResult {
+    fn part_1(input: Self::Input) -> SolveResult {
         part_1::solve(input)
     }
 
-    fn part_2(input: &Self::Input) -> SolveResult {
+    fn part_2(input: Self::Input) -> SolveResult {
         part_2::solve(input)
     }
 }

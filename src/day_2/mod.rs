@@ -15,11 +15,11 @@ impl crate::Solver for Solver {
         parsing::parse(input)
     }
 
-    fn part_1(input: &Self::Input) -> SolveResult {
+    fn part_1(input: Self::Input) -> SolveResult {
         Ok(input.iter().fold(0, |acc, round| acc + round.get_score()))
     }
 
-    fn part_2(input: &Self::Input) -> SolveResult {
+    fn part_2(input: Self::Input) -> SolveResult {
         Ok(input.iter().map(|round| round.to_strategy()).fold(0, |acc, round| acc + round.get_score()))
     }
 }

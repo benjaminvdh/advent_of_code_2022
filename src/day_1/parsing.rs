@@ -1,21 +1,17 @@
 use crate::parsing::*;
 
-pub fn parse<R: Read>(input: BufReader<R>) -> Result<crate::day_1::Input, ParseError> {
-    let mut elves = vec![];
-    let mut elf = vec![];
+pub fn parse<R: Read>(mut input: BufReader<R>) -> Result<crate::day_1::Input, ParseError> {
+    let mut contents = String::new();
+    let _ = input.read_to_string(&mut contents)?;
 
-    for line in input.lines() {
-        let line = line?;
-
-        if !line.is_empty() {
-            elf.push(line.parse()?);
-        } else {
-            elves.push(elf);
-            elf = vec![];
-        }
-    }
-
-    elves.push(elf);
+    let elves = contents
+        .split("\n\n")
+        .map(|elf| {
+            elf.lines()
+                .map(|line| line.parse::<u32>())
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(elves)
 }

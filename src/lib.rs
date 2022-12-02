@@ -1,4 +1,5 @@
 pub mod day_1;
+pub mod day_2;
 
 mod input;
 mod parsing;
@@ -71,6 +72,6 @@ pub fn solve_on_input<S: Solver, R: Read>(input: BufReader<R>) -> Result<(SolveR
 fn print_solve_result(day: u8, part: u8, result: &SolveResult) {
     match result {
         Ok(result) => println!("The result of day {} part {} is {}.", day, part, result),
-        Err(e) => eprintln!("{}", e),
+        Err(e) => eprintln!("Failed to solve day {} part {}: {}", day, part, e),
     }
 }

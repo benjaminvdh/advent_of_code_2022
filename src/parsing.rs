@@ -6,6 +6,8 @@ pub use std::io::{BufRead, BufReader, Read};
 
 #[derive(Debug)]
 pub enum ParseError {
+    Incomplete,
+    Invalid,
     Io(io::Error),
     ParseInt(ParseIntError),
 }
@@ -13,6 +15,8 @@ pub enum ParseError {
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match self {
+            ParseError::Incomplete => write!(f, "Incomplete input"),
+            ParseError::Invalid => write!(f, "Invalid input"),
             ParseError::Io(e) => write!(f, "Failed to parse input: {}", e),
             ParseError::ParseInt(e) => write!(f, "Failed to parse input: {}", e),
         }

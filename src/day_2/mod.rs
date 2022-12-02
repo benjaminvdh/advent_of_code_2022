@@ -19,8 +19,8 @@ impl crate::Solver for Solver {
         Ok(input.iter().fold(0, |acc, round| acc + round.get_score()))
     }
 
-    fn part_2(_input: &Self::Input) -> SolveResult {
-        Err(SolveError::Unimplemented)
+    fn part_2(input: &Self::Input) -> SolveResult {
+        Ok(input.iter().map(|round| round.to_strategy()).fold(0, |acc, round| acc + round.get_score()))
     }
 }
 

@@ -1,7 +1,7 @@
 use std::env;
 use std::fmt::{self, Display, Formatter};
 use std::fs::File;
-use std::io::{self, BufReader};
+use std::io;
 
 #[derive(Debug)]
 pub enum InputError {
@@ -24,8 +24,9 @@ impl Display for InputError {
     }
 }
 
-pub fn get_input() -> Result<BufReader<File>, InputError> {
+pub fn get_input_file() -> Result<File, InputError> {
     let arg = env::args_os().nth(1).ok_or(InputError::NoInputSpecified)?;
     let file = File::open(arg)?;
-    Ok(BufReader::new(file))
+
+    Ok(file)
 }

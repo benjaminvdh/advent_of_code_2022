@@ -4,7 +4,7 @@ mod part_2;
 
 use crate::solving::*;
 
-type Input = Vec<Vec<u64>>;
+type Input = Vec<u64>;
 
 pub struct Solver {}
 

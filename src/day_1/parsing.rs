@@ -6,7 +6,7 @@ pub fn parse<R: Read>(mut input: BufReader<R>) -> Result<crate::day_1::Input, Pa
 
     let elves = contents
         .split("\n\n")
-        .map(|elf| elf.lines().map(|line| line.parse()).collect())
+        .map(|elf| elf.lines().map(|line| line.parse::<u64>()).sum())
         .collect::<Result<_, _>>()?;
 
     Ok(elves)
@@ -34,13 +34,7 @@ mod tests {
 10000";
 
         let parsed_input = parse(BufReader::new(input.as_bytes())).unwrap();
-        let ref_input = vec![
-            vec![1000, 2000, 3000],
-            vec![4000],
-            vec![5000, 6000],
-            vec![7000, 8000, 9000],
-            vec![10000],
-        ];
+        let ref_input = vec![6000, 4000, 11000, 24000, 10000];
         assert_eq!(parsed_input, ref_input);
     }
 }

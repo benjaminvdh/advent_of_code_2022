@@ -1,27 +1,51 @@
+use std::collections::HashSet;
+use std::iter::FromIterator;
+
 use crate::solving::*;
 
-pub struct Rucksack(Vec<char>, Vec<char>);
+pub struct Rucksack(HashSet<char>, HashSet<char>);
 
 pub type Input = Vec<Rucksack>;
 
 impl Rucksack {
     pub fn new(contents: &str) -> Self {
         let mut items = to_char_vec(contents);
-        let mut compartment_2 = items.split_off(items.len() / 2);
+        let compartment_2 = items.split_off(items.len() / 2);
 
-        items.sort_unstable();
-        compartment_2.sort_unstable();
-
-        Self(items, compartment_2)
+        Self(
+            HashSet::from_iter(items.into_iter()),
+            HashSet::from_iter(compartment_2.into_iter()),
+        )
     }
 
     pub fn find_duplicate(&self) -> Result<char, SolveError> {
-        self.0
-            .iter()
-            .find_map(|c| self.1.binary_search(c).ok())
-            .map(|i| self.1[i])
-            .ok_or(SolveError::InvalidInput)
+        let duplicates = find_duplicates(&self.0, &self.1);
+
+        if duplicates.len() == 1 {
+            Ok(*duplicates.iter().next().unwrap())
+        } else {
+            Err(SolveError::InvalidInput)
+        }
     }
+
+    pub fn find_badge(&self, second: &Rucksack, third: &Rucksack) -> Result<char, SolveError> {
+        let shared_with_second = find_duplicates(&self.get_all_items(), &second.get_all_items());
+        let shared_between_all = find_duplicates(&shared_with_second, &third.get_all_items());
+
+        if shared_between_all.len() == 1 {
+            Ok(*shared_between_all.iter().next().unwrap())
+        } else {
+            Err(SolveError::InvalidInput)
+        }
+    }
+
+    fn get_all_items(&self) -> HashSet<char> {
+        HashSet::from_iter(self.0.iter().chain(self.1.iter()).map(|c| *c))
+    }
+}
+
+fn find_duplicates<'a>(a: &HashSet<char>, b: &HashSet<char>) -> HashSet<char> {
+    a.intersection(b).map(|c| *c).collect()
 }
 
 fn to_char_vec(input: &str) -> Vec<char> {
@@ -57,6 +81,17 @@ impl crate::Solver for Solver {
             .map(|rucksack| rucksack.find_duplicate().and_then(|c| to_priority(c)))
             .sum()
     }
+
+    fn part_2(input: Self::Input) -> SolveResult {
+        input
+            .chunks_exact(3)
+            .map(|chunk| {
+                chunk[0]
+                    .find_badge(&chunk[1], &chunk[2])
+                    .and_then(|c| to_priority(c))
+            })
+            .sum()
+    }
 }
 
 #[cfg(test)]
@@ -83,12 +118,10 @@ mod tests {
     fn new_rucksack() {
         let rucksack = create_rucksack();
 
-        let mut ref_1 = to_char_vec("vJrwpWtwJgWr");
-        ref_1.sort_unstable();
+        let ref_1 = HashSet::from_iter("vJrwpWtwJgWr".chars());
         assert_eq!(rucksack.0, ref_1);
 
-        let mut ref_2 = to_char_vec("hcsFMMfFFhFp");
-        ref_2.sort_unstable();
+        let ref_2 = HashSet::from_iter("hcsFMMfFFhFp".chars());
         assert_eq!(rucksack.1, ref_2);
     }
 
@@ -98,17 +131,26 @@ mod tests {
         assert_eq!(rucksack.find_duplicate().unwrap(), 'p');
     }
 
-    #[test]
-    fn test_part_1() {
-        let rucksacks = vec![
+    fn get_rucksacks() -> Vec<Rucksack> {
+        vec![
             Rucksack::new("vJrwpWtwJgWrhcsFMMfFFhFp"),
             Rucksack::new("jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"),
             Rucksack::new("PmmdzqPrVvPwwTWBwg"),
             Rucksack::new("wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"),
             Rucksack::new("ttgJtRGJQctTZtZT"),
             Rucksack::new("CrZsJsPPZsGzwwsLwLmpwMDw"),
-        ];
+        ]
+    }
 
+    #[test]
+    fn part_1() {
+        let rucksacks = get_rucksacks();
         assert_eq!(super::Solver::part_1(rucksacks).unwrap(), 157);
+    }
+
+    #[test]
+    fn part_2() {
+        let rucksacks = get_rucksacks();
+        assert_eq!(super::Solver::part_2(rucksacks).unwrap(), 70);
     }
 }

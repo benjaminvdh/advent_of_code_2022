@@ -1,5 +1,7 @@
-use crate::parsing::*;
-use crate::solving::*;
+use std::io::{BufReader, Read};
+
+use crate::parsing::ParseError;
+use crate::solving::{SolveError, SolveResult};
 
 type Input = Vec<u64>;
 
@@ -37,8 +39,6 @@ mod tests {
 
     use crate::solving::Solver;
 
-    use super::Solver as Day1Solver;
-
     fn get_input() -> Vec<u64> {
         vec![6000, 4000, 11000, 24000, 10000]
     }
@@ -60,17 +60,17 @@ mod tests {
 
 10000";
 
-        let parsed_input = Day1Solver::parse(BufReader::new(input.as_bytes())).unwrap();
+        let parsed_input = super::Solver::parse(BufReader::new(input.as_bytes())).unwrap();
         assert_eq!(parsed_input, get_input());
     }
 
     #[test]
     fn part_1() {
-        assert_eq!(Day1Solver::part_1(get_input()).unwrap(), 24000);
+        assert_eq!(super::Solver::part_1(get_input()).unwrap(), 24000);
     }
 
     #[test]
     fn part_2() {
-        assert_eq!(Day1Solver::part_2(get_input()).unwrap(), 45000);
+        assert_eq!(super::Solver::part_2(get_input()).unwrap(), 45000);
     }
 }

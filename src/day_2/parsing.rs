@@ -49,9 +49,18 @@ C Z";
 
         let input = parse(BufReader::new(input.as_bytes()));
         let ref_input = vec![
-            Round { opponent: Shape::Rock, player: Shape::Paper },
-            Round { opponent: Shape::Paper, player: Shape::Rock },
-            Round { opponent: Shape::Scissors, player: Shape::Scissors },
+            Round {
+                opponent: Shape::Rock,
+                player: Shape::Paper,
+            },
+            Round {
+                opponent: Shape::Paper,
+                player: Shape::Rock,
+            },
+            Round {
+                opponent: Shape::Scissors,
+                player: Shape::Scissors,
+            },
         ];
 
         assert_eq!(input.unwrap(), ref_input);

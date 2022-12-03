@@ -20,7 +20,9 @@ impl crate::Solver for Solver {
     }
 
     fn part_2(input: Self::Input) -> SolveResult {
-        Ok(input.iter().map(|round| round.to_strategy()).fold(0, |acc, round| acc + round.get_score()))
+        Ok(input
+            .iter()
+            .map(|round| round.to_strategy())
+            .fold(0, |acc, round| acc + round.get_score()))
     }
 }
-

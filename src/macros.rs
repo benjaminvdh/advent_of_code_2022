@@ -1,4 +1,13 @@
 #[macro_export]
+macro_rules! define_main {
+    ($day:ident) => {
+        fn main() {
+            advent_of_code::run::<advent_of_code::$day::Solver>();
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! define_integration_test {
     ($day:ident, $number:literal, $answer_1:literal$(, $answer_2:literal)?) => {
         use std::fs::File;

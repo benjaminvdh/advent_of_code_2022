@@ -1,3 +1,1 @@
-fn main() {
-    advent_of_code::run::<advent_of_code::day_1::Solver>();
-}
+advent_of_code::define_main!(day_1);

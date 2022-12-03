@@ -1,7 +1,7 @@
 mod parsing;
 mod rock_paper_scissors;
 
-use crate::solving::*;
+use crate::{ParseError, SolveResult};
 
 type Input = Vec<rock_paper_scissors::Round>;
 
@@ -11,7 +11,7 @@ impl crate::Solver for Solver {
     type Input = Input;
     const DAY: u8 = 2;
 
-    fn parse<R: Read>(input: BufReader<R>) -> Result<Self::Input, ParseError> {
+    fn parse(input: String) -> Result<Self::Input, ParseError> {
         parsing::parse(input)
     }
 

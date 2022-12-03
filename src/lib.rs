@@ -8,29 +8,28 @@ mod parsing;
 mod solving;
 
 use std::fmt::{self, Display, Formatter};
-use std::io::{BufReader, Read};
 
 use input::InputError;
 use parsing::ParseError;
-use solving::{SolveError, Solver};
+use solving::{SolveError, SolveResult, Solver};
 
 pub fn run<S: Solver>() {
-    let part_1 = input::get_input_file().and_then(|file| solve_part_1::<S, _>(file));
+    let part_1 = input::get_input().and_then(|input| solve_part_1::<S>(input));
     print_solve_result(S::DAY, 1, part_1);
 
-    let part_2 = input::get_input_file().and_then(|file| solve_part_2::<S, _>(file));
+    let part_2 = input::get_input().and_then(|input| solve_part_2::<S>(input));
     print_solve_result(S::DAY, 2, part_2);
 }
 
-pub fn solve_part_1<S: Solver, R: Read>(input: R) -> Result<u64, AocError> {
-    let input = S::parse(BufReader::new(input))?;
+pub fn solve_part_1<S: Solver>(input: String) -> Result<u64, AocError> {
+    let input = S::parse(input)?;
     let result = S::part_1(input)?;
 
     Ok(result)
 }
 
-pub fn solve_part_2<S: Solver, R: Read>(input: R) -> Result<u64, AocError> {
-    let input = S::parse(BufReader::new(input))?;
+pub fn solve_part_2<S: Solver>(input: String) -> Result<u64, AocError> {
+    let input = S::parse(input)?;
     let result = S::part_2(input)?;
 
     Ok(result)

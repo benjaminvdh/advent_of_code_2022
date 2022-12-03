@@ -1,15 +1,14 @@
 use std::env;
 use std::fmt::{self, Display, Formatter};
-use std::fs::File;
 use std::io;
 
 use crate::AocError;
 
-pub fn get_input_file() -> Result<File, AocError> {
-    let arg = env::args_os().nth(1).ok_or(InputError::NoInputSpecified)?;
-    let file = File::open(arg).map_err(|e| InputError::from(e))?;
+pub fn get_input() -> Result<String, AocError> {
+    let path = env::args_os().nth(1).ok_or(InputError::NoInputSpecified)?;
+    let input = std::fs::read_to_string(path).map_err(|e| InputError::from(e))?;
 
-    Ok(file)
+    Ok(input)
 }
 
 #[derive(Debug)]

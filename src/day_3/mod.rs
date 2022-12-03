@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-use crate::solving::*;
+use crate::{ParseError, SolveError, SolveResult};
 
 pub struct Rucksack(HashSet<char>, HashSet<char>);
 
@@ -68,11 +68,8 @@ impl crate::Solver for Solver {
     type Input = Input;
     const DAY: u8 = 3;
 
-    fn parse<R: Read>(mut input: BufReader<R>) -> Result<Self::Input, ParseError> {
-        let mut buf = String::new();
-        let _ = input.read_to_string(&mut buf)?;
-
-        Ok(buf.lines().map(|line| Rucksack::new(line)).collect())
+    fn parse(input: String) -> Result<Self::Input, ParseError> {
+        Ok(input.lines().map(|line| Rucksack::new(line)).collect())
     }
 
     fn part_1(input: Self::Input) -> SolveResult {

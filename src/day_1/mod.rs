@@ -1,7 +1,4 @@
-use std::io::{BufReader, Read};
-
-use crate::parsing::ParseError;
-use crate::solving::{SolveError, SolveResult};
+use crate::{ParseError, SolveError, SolveResult};
 
 type Input = Vec<u64>;
 
@@ -11,11 +8,8 @@ impl crate::Solver for Solver {
     type Input = Input;
     const DAY: u8 = 1;
 
-    fn parse<R: Read>(mut input: BufReader<R>) -> Result<Self::Input, ParseError> {
-        let mut contents = String::new();
-        let _ = input.read_to_string(&mut contents)?;
-
-        let elves = contents
+    fn parse(input: String) -> Result<Self::Input, ParseError> {
+        let elves = input
             .split("\n\n")
             .map(|elf| elf.lines().map(|line| line.parse::<u64>()).sum())
             .collect::<Result<_, _>>()?;
@@ -35,8 +29,6 @@ impl crate::Solver for Solver {
 
 #[cfg(test)]
 mod tests {
-    use std::io::BufReader;
-
     use crate::solving::Solver;
 
     fn get_input() -> Vec<u64> {
@@ -60,7 +52,7 @@ mod tests {
 
 10000";
 
-        let parsed_input = super::Solver::parse(BufReader::new(input.as_bytes())).unwrap();
+        let parsed_input = super::Solver::parse(String::from(input)).unwrap();
         assert_eq!(parsed_input, get_input());
     }
 

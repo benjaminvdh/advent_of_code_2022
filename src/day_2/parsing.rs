@@ -2,9 +2,8 @@ use crate::parsing::*;
 
 use crate::day_2::rock_paper_scissors::{Round, Shape};
 
-pub fn parse<R: Read>(input: BufReader<R>) -> Result<crate::day_2::Input, ParseError> {
-    let lines = input.lines().collect::<Result<Vec<_>, _>>()?;
-    lines.iter().map(|line| parse_line(line)).collect()
+pub fn parse(input: String) -> Result<crate::day_2::Input, ParseError> {
+    input.lines().map(|line| parse_line(line)).collect()
 }
 
 fn parse_line(line: &str) -> Result<Round, ParseError> {
@@ -47,7 +46,7 @@ mod tests {
 B X
 C Z";
 
-        let input = parse(BufReader::new(input.as_bytes()));
+        let input = parse(String::from(input));
         let ref_input = vec![
             Round {
                 opponent: Shape::Rock,

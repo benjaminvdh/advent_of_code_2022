@@ -3,16 +3,19 @@ use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 use std::io;
 
+use crate::AocError;
+
+pub fn get_input_file() -> Result<File, AocError> {
+    let arg = env::args_os().nth(1).ok_or(InputError::NoInputSpecified)?;
+    let file = File::open(arg).map_err(|e| InputError::from(e))?;
+
+    Ok(file)
+}
+
 #[derive(Debug)]
 pub enum InputError {
     Io(io::Error),
     NoInputSpecified,
-}
-
-impl From<io::Error> for InputError {
-    fn from(e: io::Error) -> Self {
-        InputError::Io(e)
-    }
 }
 
 impl Display for InputError {
@@ -24,9 +27,14 @@ impl Display for InputError {
     }
 }
 
-pub fn get_input_file() -> Result<File, InputError> {
-    let arg = env::args_os().nth(1).ok_or(InputError::NoInputSpecified)?;
-    let file = File::open(arg)?;
+impl From<io::Error> for InputError {
+    fn from(e: io::Error) -> Self {
+        InputError::Io(e)
+    }
+}
 
-    Ok(file)
+impl From<InputError> for AocError {
+    fn from(e: InputError) -> Self {
+        AocError::Input(e)
+    }
 }

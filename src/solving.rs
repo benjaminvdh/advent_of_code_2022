@@ -3,6 +3,25 @@ pub use std::io::{BufReader, Read};
 
 pub use crate::parsing::ParseError;
 
+use crate::AocError;
+
+pub type SolveResult = Result<u64, SolveError>;
+
+pub trait Solver {
+    type Input;
+    const DAY: u8;
+
+    fn parse<R: Read>(input: BufReader<R>) -> Result<Self::Input, ParseError>;
+
+    fn part_1(_input: Self::Input) -> SolveResult {
+        Err(SolveError::Unimplemented)
+    }
+
+    fn part_2(_input: Self::Input) -> SolveResult {
+        Err(SolveError::Unimplemented)
+    }
+}
+
 #[derive(Debug)]
 pub enum SolveError {
     EmptyInput,
@@ -20,19 +39,8 @@ impl Display for SolveError {
     }
 }
 
-pub type SolveResult = Result<u64, SolveError>;
-
-pub trait Solver {
-    type Input;
-    const DAY: u8;
-
-    fn parse<R: Read>(input: BufReader<R>) -> Result<Self::Input, ParseError>;
-
-    fn part_1(_input: Self::Input) -> SolveResult {
-        Err(SolveError::Unimplemented)
-    }
-
-    fn part_2(_input: Self::Input) -> SolveResult {
-        Err(SolveError::Unimplemented)
+impl From<SolveError> for AocError {
+    fn from(e: SolveError) -> Self {
+        AocError::Solving(e)
     }
 }

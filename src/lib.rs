@@ -1,12 +1,13 @@
 pub mod day_1;
 pub mod day_2;
+pub mod day_3;
 
 mod input;
 mod parsing;
 mod solving;
 
-use std::fs::File;
 use std::fmt::{self, Display, Formatter};
+use std::fs::File;
 use std::io::{self, BufReader, Read};
 
 use input::InputError;

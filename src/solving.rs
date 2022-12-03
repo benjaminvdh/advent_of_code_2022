@@ -6,6 +6,7 @@ pub use crate::parsing::ParseError;
 #[derive(Debug)]
 pub enum SolveError {
     EmptyInput,
+    InvalidInput,
     Unimplemented,
 }
 
@@ -13,6 +14,7 @@ impl Display for SolveError {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match self {
             SolveError::EmptyInput => write!(f, "Input is empty"),
+            SolveError::InvalidInput => write!(f, "Input is invalid"),
             SolveError::Unimplemented => write!(f, "Not implemented"),
         }
     }

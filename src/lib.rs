@@ -3,6 +3,7 @@ pub mod day_2;
 pub mod day_3;
 
 mod input;
+mod integration_test;
 mod parsing;
 mod solving;
 

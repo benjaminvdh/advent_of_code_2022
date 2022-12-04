@@ -1,7 +1,5 @@
 mod parsing;
 
-use std::cmp::Ordering;
-
 use crate::{ParseError, SolveResult};
 
 pub struct Solver {}
@@ -28,37 +26,18 @@ impl crate::Solver for Solver {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Shape {
-    Rock,
-    Paper,
-    Scissors,
+    Rock = 0,
+    Paper = 1,
+    Scissors = 2,
 }
 
-impl Shape {
-    pub fn cmp(&self, other: &Shape) -> Ordering {
-        match self {
-            Shape::Rock => match other {
-                Shape::Rock => Ordering::Equal,
-                Shape::Paper => Ordering::Less,
-                Shape::Scissors => Ordering::Greater,
-            },
-            Shape::Paper => match other {
-                Shape::Rock => Ordering::Greater,
-                Shape::Paper => Ordering::Equal,
-                Shape::Scissors => Ordering::Less,
-            },
-            Shape::Scissors => match other {
-                Shape::Rock => Ordering::Less,
-                Shape::Paper => Ordering::Greater,
-                Shape::Scissors => Ordering::Equal,
-            },
-        }
-    }
-
-    pub fn get_value(&self) -> u64 {
-        match self {
-            Shape::Rock => 1,
-            Shape::Paper => 2,
-            Shape::Scissors => 3,
+impl From<i8> for Shape {
+    fn from(val: i8) -> Self {
+        match val.rem_euclid(3) {
+            0 => Shape::Rock,
+            1 => Shape::Paper,
+            2 => Shape::Scissors,
+            _ => unreachable!(),
         }
     }
 }
@@ -71,35 +50,21 @@ pub struct Round {
 
 impl Round {
     pub fn get_score(&self) -> u64 {
-        self.player.get_value()
-            + match self.player.cmp(&self.opponent) {
-                Ordering::Less => 0,
-                Ordering::Equal => 3,
-                Ordering::Greater => 6,
-            }
+        (self.player as i8 + 1 + self.round_outcome()) as u64
+    }
+
+    fn round_outcome(&self) -> i8 {
+        3 * (self.player as i8 - self.opponent as i8 + 1).rem_euclid(3)
     }
 
     pub fn to_strategy(&self) -> Self {
-        let player = match self.player {
-            // Lose
-            Shape::Rock => match self.opponent {
-                Shape::Rock => Shape::Scissors,
-                Shape::Paper => Shape::Rock,
-                Shape::Scissors => Shape::Paper,
-            },
-            // Draw
-            Shape::Paper => self.opponent,
-            // Win
-            Shape::Scissors => match self.opponent {
-                Shape::Rock => Shape::Paper,
-                Shape::Paper => Shape::Scissors,
-                Shape::Scissors => Shape::Rock,
-            },
-        };
-
         Self {
             opponent: self.opponent,
-            player,
+            player: match self.player {
+                Shape::Rock => Shape::from(self.opponent as i8 - 1),
+                Shape::Paper => self.opponent,
+                Shape::Scissors => Shape::from(self.opponent as i8 + 1),
+            },
         }
     }
 }

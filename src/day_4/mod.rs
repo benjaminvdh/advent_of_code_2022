@@ -18,7 +18,17 @@ impl crate::Solver for Solver {
     }
 
     fn part_1(input: Self::Input) -> SolveResult {
-        Ok(input.iter().filter(|(a, b)| ranges_overlap(a, b)).count() as u64)
+        Ok(input
+            .iter()
+            .filter(|(a, b)| range_contains(a, b) || range_contains(b, a))
+            .count() as u64)
+    }
+
+    fn part_2(input: Self::Input) -> SolveResult {
+        Ok(input
+            .iter()
+            .filter(|(a, b)| range_overlaps(a, b) || range_overlaps(b, a))
+            .count() as u64)
     }
 }
 
@@ -40,12 +50,12 @@ fn parse_range(range: &str) -> Result<Range, ParseError> {
     }
 }
 
-fn ranges_overlap(a: &Range, b: &Range) -> bool {
-    range_overlaps(a, b) || range_overlaps(b, a)
+fn range_contains(a: &Range, b: &Range) -> bool {
+    a.contains(b.start()) && a.contains(b.end())
 }
 
 fn range_overlaps(a: &Range, b: &Range) -> bool {
-    a.contains(b.start()) && a.contains(b.end())
+    a.contains(b.start()) || a.contains(b.end())
 }
 
 #[cfg(test)]
@@ -80,5 +90,11 @@ mod tests {
     fn part_1() {
         let input = get_input();
         assert_eq!(super::Solver::part_1(input).unwrap(), 2);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+        assert_eq!(super::Solver::part_2(input).unwrap(), 4);
     }
 }

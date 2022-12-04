@@ -1,64 +1,55 @@
-use std::collections::HashSet;
-use std::iter::FromIterator;
+use crate::{ParseError, SolveResult};
 
-use crate::{ParseError, SolveError, SolveResult};
-
-pub struct Rucksack(HashSet<char>, HashSet<char>);
+pub struct Rucksack(u64, u64);
 
 pub type Input = Vec<Rucksack>;
 
 impl Rucksack {
-    pub fn new(contents: &str) -> Self {
-        let mut items = to_char_vec(contents);
-        let compartment_2 = items.split_off(items.len() / 2);
-
-        Self(
-            HashSet::from_iter(items.into_iter()),
-            HashSet::from_iter(compartment_2.into_iter()),
-        )
-    }
-
-    pub fn find_duplicate(&self) -> Result<char, SolveError> {
-        let duplicates = find_duplicates(&self.0, &self.1);
-
-        if duplicates.len() == 1 {
-            Ok(*duplicates.iter().next().unwrap())
+    pub fn new(contents: &str) -> Result<Self, ParseError> {
+        if input_is_valid(contents) {
+            let (compartment_1, compartment_2) = contents.split_at(contents.len() / 2);
+            Ok(Self(to_u64(compartment_1), to_u64(compartment_2)))
         } else {
-            Err(SolveError::InvalidInput)
+            Err(ParseError::Invalid)
         }
     }
 
-    pub fn find_badge(&self, second: &Rucksack, third: &Rucksack) -> Result<char, SolveError> {
-        let shared_with_second = find_duplicates(&self.get_all_items(), &second.get_all_items());
-        let shared_between_all = find_duplicates(&shared_with_second, &third.get_all_items());
-
-        if shared_between_all.len() == 1 {
-            Ok(*shared_between_all.iter().next().unwrap())
-        } else {
-            Err(SolveError::InvalidInput)
-        }
-    }
-
-    fn get_all_items(&self) -> HashSet<char> {
-        HashSet::from_iter(self.0.iter().chain(self.1.iter()).map(|c| *c))
+    pub fn find_duplicate(&self) -> char {
+        from_u64(self.0 & self.1)
     }
 }
 
-fn find_duplicates<'a>(a: &HashSet<char>, b: &HashSet<char>) -> HashSet<char> {
-    a.intersection(b).map(|c| *c).collect()
+fn input_is_valid(input: &str) -> bool {
+    input
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_uppercase())
 }
 
-fn to_char_vec(input: &str) -> Vec<char> {
-    input.chars().collect()
+fn find_badge(first: &Rucksack, second: &Rucksack, third: &Rucksack) -> char {
+    from_u64((first.0 | first.1) & (second.0 | second.1) & (third.0 | third.1))
 }
 
-fn to_priority(c: char) -> Result<u64, SolveError> {
+fn to_u64(input: &str) -> u64 {
+    input.chars().fold(0, |acc, c| acc | 1 << to_priority(c))
+}
+
+fn from_u64(input: u64) -> char {
+    let priority = input.trailing_zeros() as u8;
+
+    match priority {
+        1..=26 => (priority - 1 + 'a' as u8) as char,
+        27..=52 => (priority - 27 + 'A' as u8) as char,
+        _ => unreachable!(),
+    }
+}
+
+fn to_priority(c: char) -> u64 {
     if c.is_ascii_lowercase() {
-        Ok((c as u64) - ('a' as u64) + 1)
+        (c as u64) - ('a' as u64) + 1
     } else if c.is_ascii_uppercase() {
-        Ok((c as u64) - ('A' as u64) + 27)
+        (c as u64) - ('A' as u64) + 27
     } else {
-        Err(SolveError::InvalidInput)
+        unreachable!()
     }
 }
 
@@ -69,25 +60,24 @@ impl crate::Solver for Solver {
     const DAY: u8 = 3;
 
     fn parse(input: String) -> Result<Self::Input, ParseError> {
-        Ok(input.lines().map(|line| Rucksack::new(line)).collect())
+        Ok(input
+            .lines()
+            .map(|line| Rucksack::new(line))
+            .collect::<Result<_, _>>()?)
     }
 
     fn part_1(input: Self::Input) -> SolveResult {
-        input
+        Ok(input
             .iter()
-            .map(|rucksack| rucksack.find_duplicate().and_then(|c| to_priority(c)))
-            .sum()
+            .map(|rucksack| to_priority(rucksack.find_duplicate()))
+            .sum())
     }
 
     fn part_2(input: Self::Input) -> SolveResult {
-        input
+        Ok(input
             .chunks_exact(3)
-            .map(|chunk| {
-                chunk[0]
-                    .find_badge(&chunk[1], &chunk[2])
-                    .and_then(|c| to_priority(c))
-            })
-            .sum()
+            .map(|chunk| to_priority(find_badge(&chunk[0], &chunk[1], &chunk[2])))
+            .sum())
     }
 }
 
@@ -97,45 +87,30 @@ mod tests {
 
     use super::*;
 
-    fn create_rucksack() -> Rucksack {
-        Rucksack::new("vJrwpWtwJgWrhcsFMMfFFhFp")
-    }
-
     #[test]
     fn test_priority() {
-        assert_eq!(to_priority('p').unwrap(), 16);
-        assert_eq!(to_priority('L').unwrap(), 38);
-        assert_eq!(to_priority('P').unwrap(), 42);
-        assert_eq!(to_priority('v').unwrap(), 22);
-        assert_eq!(to_priority('t').unwrap(), 20);
-        assert_eq!(to_priority('s').unwrap(), 19);
-    }
-
-    #[test]
-    fn new_rucksack() {
-        let rucksack = create_rucksack();
-
-        let ref_1 = HashSet::from_iter("vJrwpWtwJgWr".chars());
-        assert_eq!(rucksack.0, ref_1);
-
-        let ref_2 = HashSet::from_iter("hcsFMMfFFhFp".chars());
-        assert_eq!(rucksack.1, ref_2);
+        assert_eq!(to_priority('p'), 16);
+        assert_eq!(to_priority('L'), 38);
+        assert_eq!(to_priority('P'), 42);
+        assert_eq!(to_priority('v'), 22);
+        assert_eq!(to_priority('t'), 20);
+        assert_eq!(to_priority('s'), 19);
     }
 
     #[test]
     fn find_duplicate() {
-        let rucksack = create_rucksack();
-        assert_eq!(rucksack.find_duplicate().unwrap(), 'p');
+        let rucksack = Rucksack::new("vJrwpWtwJgWrhcsFMMfFFhFp").unwrap();
+        assert_eq!(rucksack.find_duplicate(), 'p');
     }
 
     fn get_rucksacks() -> Vec<Rucksack> {
         vec![
-            Rucksack::new("vJrwpWtwJgWrhcsFMMfFFhFp"),
-            Rucksack::new("jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"),
-            Rucksack::new("PmmdzqPrVvPwwTWBwg"),
-            Rucksack::new("wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"),
-            Rucksack::new("ttgJtRGJQctTZtZT"),
-            Rucksack::new("CrZsJsPPZsGzwwsLwLmpwMDw"),
+            Rucksack::new("vJrwpWtwJgWrhcsFMMfFFhFp").unwrap(),
+            Rucksack::new("jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL").unwrap(),
+            Rucksack::new("PmmdzqPrVvPwwTWBwg").unwrap(),
+            Rucksack::new("wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn").unwrap(),
+            Rucksack::new("ttgJtRGJQctTZtZT").unwrap(),
+            Rucksack::new("CrZsJsPPZsGzwwsLwLmpwMDw").unwrap(),
         ]
     }
 

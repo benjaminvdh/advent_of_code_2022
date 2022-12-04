@@ -1,8 +1,8 @@
-use crate::parsing::*;
+use crate::ParseError;
 
-use crate::day_2::rock_paper_scissors::{Round, Shape};
+use super::{Round, Shape, Solver};
 
-pub fn parse(input: String) -> Result<crate::day_2::Input, ParseError> {
+pub fn parse(input: String) -> Result<<Solver as crate::Solver>::Input, ParseError> {
     input.lines().map(|line| parse_line(line)).collect()
 }
 

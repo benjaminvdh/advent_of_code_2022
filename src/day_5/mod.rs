@@ -11,17 +11,6 @@ pub struct Task {
     pub to: usize,
 }
 
-fn execute_tasks(mut state: Crates, tasks: &[Task]) -> Result<Crates, SolveError> {
-    for task in tasks {
-        for _ in 0..task.num {
-            let top = state[task.from - 1].pop().ok_or(SolveError::InvalidInput)?;
-            state[task.to - 1].push(top);
-        }
-    }
-
-    Ok(state)
-}
-
 pub struct Solver {}
 
 impl crate::Solver for Solver {
@@ -34,12 +23,38 @@ impl crate::Solver for Solver {
     }
 
     fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
-        let crates = execute_tasks(input.0, &input.1)?;
-        Ok(crates
-            .iter()
-            .map(|stack| stack.last().unwrap_or(&' '))
-            .collect())
+        let (mut crates, tasks) = input;
+
+        for task in tasks {
+            for _ in 0..task.num {
+                let top = crates[task.from - 1]
+                    .pop()
+                    .ok_or(SolveError::InvalidInput)?;
+                crates[task.to - 1].push(top);
+            }
+        }
+
+        Ok(to_string(&crates))
     }
+
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
+        let (mut crates, tasks) = input;
+
+        for task in tasks {
+            let len = crates[task.from - 1].len();
+            let moving_crates = crates[task.from - 1].split_off(len - task.num);
+            crates[task.to - 1].extend(moving_crates.into_iter());
+        }
+
+        Ok(to_string(&crates))
+    }
+}
+
+fn to_string(crates: &Crates) -> String {
+    crates
+        .iter()
+        .map(|stack| stack.last().unwrap_or(&' '))
+        .collect()
 }
 
 #[cfg(test)]
@@ -81,5 +96,12 @@ mod tests {
         let result = super::Solver::part_1(get_input()).unwrap();
 
         assert_eq!(result, "CMZ");
+    }
+
+    #[test]
+    fn part_2() {
+        let result = super::Solver::part_2(get_input()).unwrap();
+
+        assert_eq!(result, "MCD");
     }
 }

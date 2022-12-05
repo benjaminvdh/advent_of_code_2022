@@ -1,4 +1,4 @@
-use crate::{ParseError, SolveResult};
+use crate::{ParseError, SolveError};
 
 pub struct Solver {}
 
@@ -6,6 +6,7 @@ type Range = std::ops::RangeInclusive<u64>;
 
 impl crate::Solver for Solver {
     type Input = Vec<(Range, Range)>;
+    type Output = u64;
     const DAY: u8 = 4;
 
     fn parse(input: String) -> Result<Self::Input, ParseError> {
@@ -17,14 +18,14 @@ impl crate::Solver for Solver {
         Ok(pairs)
     }
 
-    fn part_1(input: Self::Input) -> SolveResult {
+    fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
         Ok(input
             .iter()
             .filter(|(a, b)| range_contains(a, b) || range_contains(b, a))
             .count() as u64)
     }
 
-    fn part_2(input: Self::Input) -> SolveResult {
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
         Ok(input
             .iter()
             .filter(|(a, b)| range_overlaps(a, b) || range_overlaps(b, a))

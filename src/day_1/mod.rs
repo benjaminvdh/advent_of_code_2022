@@ -1,4 +1,4 @@
-use crate::{ParseError, SolveError, SolveResult};
+use crate::{ParseError, SolveError};
 
 type Input = Vec<u64>;
 
@@ -6,6 +6,7 @@ pub struct Solver {}
 
 impl crate::Solver for Solver {
     type Input = Input;
+    type Output = u64;
     const DAY: u8 = 1;
 
     fn parse(input: String) -> Result<Self::Input, ParseError> {
@@ -17,11 +18,11 @@ impl crate::Solver for Solver {
         Ok(elves)
     }
 
-    fn part_1(input: Self::Input) -> SolveResult {
+    fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
         input.into_iter().max().ok_or(SolveError::EmptyInput)
     }
 
-    fn part_2(mut input: Self::Input) -> SolveResult {
+    fn part_2(mut input: Self::Input) -> Result<Self::Output, SolveError> {
         input.sort_unstable();
         Ok(input.iter().rev().take(3).sum())
     }

@@ -12,7 +12,7 @@ use std::fmt::{self, Display, Formatter};
 
 use input::InputError;
 use parsing::ParseError;
-use solving::{SolveError, SolveResult, Solver};
+use solving::{SolveError, Solver};
 
 pub fn run<S: Solver>() {
     let part_1 = input::get_input().and_then(|input| solve_part_1::<S>(input));
@@ -22,21 +22,21 @@ pub fn run<S: Solver>() {
     print_solve_result(S::DAY, 2, part_2);
 }
 
-pub fn solve_part_1<S: Solver>(input: String) -> Result<u64, AocError> {
+pub fn solve_part_1<S: Solver>(input: String) -> Result<S::Output, AocError> {
     let input = S::parse(input)?;
     let result = S::part_1(input)?;
 
     Ok(result)
 }
 
-pub fn solve_part_2<S: Solver>(input: String) -> Result<u64, AocError> {
+pub fn solve_part_2<S: Solver>(input: String) -> Result<S::Output, AocError> {
     let input = S::parse(input)?;
     let result = S::part_2(input)?;
 
     Ok(result)
 }
 
-fn print_solve_result(day: u8, part: u8, result: Result<u64, AocError>) {
+fn print_solve_result<D: Display>(day: u8, part: u8, result: Result<D, AocError>) {
     match result {
         Ok(result) => println!("The result of day {} part {} is {}", day, part, result),
         Err(e) => eprintln!("Failed to solve day {} part {}: {}", day, part, e),

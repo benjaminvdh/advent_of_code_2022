@@ -1,4 +1,4 @@
-use crate::{ParseError, SolveResult};
+use crate::{ParseError, SolveError};
 
 pub struct Rucksack(u64, u64);
 
@@ -57,6 +57,7 @@ pub struct Solver {}
 
 impl crate::Solver for Solver {
     type Input = Input;
+    type Output = u64;
     const DAY: u8 = 3;
 
     fn parse(input: String) -> Result<Self::Input, ParseError> {
@@ -66,14 +67,14 @@ impl crate::Solver for Solver {
             .collect::<Result<_, _>>()?)
     }
 
-    fn part_1(input: Self::Input) -> SolveResult {
+    fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
         Ok(input
             .iter()
             .map(|rucksack| to_priority(rucksack.find_duplicate()))
             .sum())
     }
 
-    fn part_2(input: Self::Input) -> SolveResult {
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
         Ok(input
             .chunks_exact(3)
             .map(|chunk| to_priority(find_badge(&chunk[0], &chunk[1], &chunk[2])))

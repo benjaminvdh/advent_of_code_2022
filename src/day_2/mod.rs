@@ -1,22 +1,23 @@
 mod parsing;
 
-use crate::{ParseError, SolveResult};
+use crate::{ParseError, SolveError};
 
 pub struct Solver {}
 
 impl crate::Solver for Solver {
     type Input = Vec<Round>;
+    type Output = u64;
     const DAY: u8 = 2;
 
     fn parse(input: String) -> Result<Self::Input, ParseError> {
         parsing::parse(input)
     }
 
-    fn part_1(input: Self::Input) -> SolveResult {
+    fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
         Ok(input.iter().fold(0, |acc, round| acc + round.get_score()))
     }
 
-    fn part_2(input: Self::Input) -> SolveResult {
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
         Ok(input
             .iter()
             .map(|round| round.to_strategy())

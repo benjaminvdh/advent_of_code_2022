@@ -3,19 +3,18 @@ use std::fmt::{self, Display, Formatter};
 use crate::parsing::ParseError;
 use crate::AocError;
 
-pub type SolveResult = Result<u64, SolveError>;
-
 pub trait Solver {
     type Input;
+    type Output: Display;
     const DAY: u8;
 
     fn parse(input: String) -> Result<Self::Input, ParseError>;
 
-    fn part_1(_input: Self::Input) -> SolveResult {
+    fn part_1(_input: Self::Input) -> Result<Self::Output, SolveError> {
         Err(SolveError::Unimplemented)
     }
 
-    fn part_2(_input: Self::Input) -> SolveResult {
+    fn part_2(_input: Self::Input) -> Result<Self::Output, SolveError> {
         Err(SolveError::Unimplemented)
     }
 }

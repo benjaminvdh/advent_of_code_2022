@@ -1,5 +1,14 @@
 use crate::{ParseError, SolveError};
 
+fn get_index(input: Vec<char>, window_size: usize) -> Result<usize, SolveError> {
+    input
+        .windows(window_size)
+        .enumerate()
+        .find(|(_, window)| all_different(window))
+        .map(|(index, window)| index + window.len())
+        .ok_or(SolveError::InvalidInput)
+}
+
 fn all_different(window: &[char]) -> bool {
     for i in 0..window.len() {
         for j in i + 1..window.len() {
@@ -24,12 +33,11 @@ impl crate::Solver for Solver {
     }
 
     fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
-        input
-            .windows(4)
-            .enumerate()
-            .find(|(_, window)| all_different(window))
-            .map(|(index, _)| index + 4)
-            .ok_or(SolveError::InvalidInput)
+        get_index(input, 4)
+    }
+
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
+        get_index(input, 14)
     }
 }
 #[cfg(test)]
@@ -65,5 +73,36 @@ mod tests {
     fn part_1_e() {
         let input = super::Solver::parse(String::from("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw")).unwrap();
         assert_eq!(super::Solver::part_1(input).unwrap(), 11);
+    }
+
+    #[test]
+    fn part_2_a() {
+        let input = super::Solver::parse(String::from("mjqjpqmgbljsphdztnvjfqwrcgsmlb")).unwrap();
+        assert_eq!(super::Solver::part_2(input).unwrap(), 19);
+    }
+
+    #[test]
+    fn part_2_b() {
+        let input = super::Solver::parse(String::from("bvwbjplbgvbhsrlpgdmjqwftvncz")).unwrap();
+        assert_eq!(super::Solver::part_2(input).unwrap(), 23);
+    }
+
+    #[test]
+    fn part_2_c() {
+        let input = super::Solver::parse(String::from("nppdvjthqldpwncqszvftbrmjlhg")).unwrap();
+        assert_eq!(super::Solver::part_2(input).unwrap(), 23);
+    }
+
+    #[test]
+    fn part_2_d() {
+        let input =
+            super::Solver::parse(String::from("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg")).unwrap();
+        assert_eq!(super::Solver::part_2(input).unwrap(), 29);
+    }
+
+    #[test]
+    fn part_2_e() {
+        let input = super::Solver::parse(String::from("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw")).unwrap();
+        assert_eq!(super::Solver::part_2(input).unwrap(), 26);
     }
 }

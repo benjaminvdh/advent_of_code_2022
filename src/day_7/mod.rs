@@ -70,6 +70,21 @@ impl crate::Solver for Solver {
             .filter(|size| *size < 100_000)
             .sum())
     }
+
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
+        const TOTAL_SPACE: usize = 70000000;
+        const REQUIRED_SPACE: usize = 30000000;
+        let used_space = input.size;
+        let unused_space = TOTAL_SPACE - used_space;
+        let needed_space = REQUIRED_SPACE - unused_space;
+
+        input
+            .get_dir_sizes()
+            .into_iter()
+            .filter(|size| *size > needed_space)
+            .min()
+            .ok_or(SolveError::InvalidInput)
+    }
 }
 
 fn parse_line(line: &str) -> Result<Command, ParseError> {
@@ -172,5 +187,10 @@ $ ls
     #[test]
     fn part_1() {
         assert_eq!(super::Solver::part_1(get_input()).unwrap(), 95437);
+    }
+
+    #[test]
+    fn part_2() {
+        assert_eq!(super::Solver::part_2(get_input()).unwrap(), 24933642);
     }
 }

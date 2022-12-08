@@ -4,4 +4,4 @@ version = 3
 
 [[package]]
 name = "advent_of_code"
-version = "2022.7.2"
+version = "2022.8.1"

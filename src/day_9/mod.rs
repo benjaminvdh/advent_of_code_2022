@@ -55,6 +55,28 @@ impl crate::Solver for Solver {
 
         Ok(tails.len())
     }
+
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
+        let mut knots = [Point(0, 0); 10];
+        let mut tails = vec![Point(0, 0)];
+
+        for motion in input {
+            for _ in 0..motion.distance {
+                knots[0].update(&motion.direction);
+
+                for i in 1..knots.len() {
+                    knots[i] = move_towards(&knots[i - 1], &knots[i]);
+                }
+
+                tails.push(knots[9]);
+            }
+        }
+
+        tails.sort();
+        tails.dedup();
+
+        Ok(tails.len())
+    }
 }
 
 fn parse_line(line: &str) -> Result<Motion, ParseError> {
@@ -149,5 +171,45 @@ R 2";
         let input = get_input();
 
         assert_eq!(super::Solver::part_1(input).unwrap(), 13);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = vec![
+            Motion {
+                direction: Direction::Right,
+                distance: 5,
+            },
+            Motion {
+                direction: Direction::Up,
+                distance: 8,
+            },
+            Motion {
+                direction: Direction::Left,
+                distance: 8,
+            },
+            Motion {
+                direction: Direction::Down,
+                distance: 3,
+            },
+            Motion {
+                direction: Direction::Right,
+                distance: 17,
+            },
+            Motion {
+                direction: Direction::Down,
+                distance: 10,
+            },
+            Motion {
+                direction: Direction::Left,
+                distance: 25,
+            },
+            Motion {
+                direction: Direction::Up,
+                distance: 20,
+            },
+        ];
+
+        assert_eq!(super::Solver::part_2(input).unwrap(), 36);
     }
 }

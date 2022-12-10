@@ -7,50 +7,28 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    fn execute(&self, x: &mut i32, clock: &mut i32, signal_strengths: &mut [i32; 6]) {
-        for i in 0..6 {
-            if *clock == 20 + (i as i32) * 40 {
-                signal_strengths[i] = *clock * *x;
-            }
-        }
-
+    fn execute(&self, xx: &mut Vec<i32>) {
         match self {
             Instruction::Addx(value) => {
-                for i in 0..6 {
-                    if *clock == 19 + (i as i32) * 40 {
-                        signal_strengths[i] = (*clock + 1) * *x;
-                    }
-                }
-                *x += value;
-                *clock += 2;
+                xx.push(*xx.last().unwrap());
+                xx.push(*xx.last().unwrap() + value);
             }
             Instruction::Noop => {
-                *clock += 1;
+                xx.push(*xx.last().unwrap());
             }
         }
     }
 }
 
-fn get_sprite_positions(instructions: &[Instruction]) -> Vec<i32> {
-    let mut x = 1;
-
-    let mut output = Vec::with_capacity(241);
-    output.push(x);
+fn execute(instructions: &[Instruction]) -> Vec<i32> {
+    let mut xx = Vec::with_capacity(241);
+    xx.push(1);
 
     for instruction in instructions {
-        match instruction {
-            Instruction::Addx(value) => {
-                output.push(x);
-                x += value;
-                output.push(x);
-            }
-            Instruction::Noop => {
-                output.push(x);
-            }
-        }
+        instruction.execute(&mut xx);
     }
 
-    output
+    xx
 }
 
 pub struct Solver {}
@@ -65,26 +43,23 @@ impl crate::Solver for Solver {
     }
 
     fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
-        let mut x = 1;
-        let mut clock = 1;
-        let mut signal_strengths = [0; 6];
+        let xx = execute(&input);
 
-        for instruction in input {
-            instruction.execute(&mut x, &mut clock, &mut signal_strengths);
-        }
-
-        Ok(signal_strengths.iter().sum())
+        Ok([20, 60, 100, 140, 180, 220]
+            .into_iter()
+            .map(|i| i * xx[*i as usize - 1])
+            .sum())
     }
 
     fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
-        let x_positions = get_sprite_positions(&input);
+        let xx = execute(&input);
+
         let mut output = String::with_capacity(240);
 
         for i in 0..240 {
-            let x = x_positions[i];
             let current_pixel = (i as i32) % 40;
 
-            if x - 1 <= current_pixel && current_pixel <= x + 1 {
+            if xx[i] - 1 <= current_pixel && current_pixel <= xx[i] + 1 {
                 output.push('#');
             } else {
                 output.push('.');

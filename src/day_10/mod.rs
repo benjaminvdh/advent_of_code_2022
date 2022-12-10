@@ -31,6 +31,28 @@ impl Instruction {
     }
 }
 
+fn get_sprite_positions(instructions: &[Instruction]) -> Vec<i32> {
+    let mut x = 1;
+
+    let mut output = Vec::with_capacity(241);
+    output.push(x);
+
+    for instruction in instructions {
+        match instruction {
+            Instruction::Addx(value) => {
+                output.push(x);
+                x += value;
+                output.push(x);
+            }
+            Instruction::Noop => {
+                output.push(x);
+            }
+        }
+    }
+
+    output
+}
+
 pub struct Solver {}
 
 impl crate::Solver for Solver {
@@ -52,6 +74,28 @@ impl crate::Solver for Solver {
         }
 
         Ok(signal_strengths.iter().sum())
+    }
+
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
+        let x_positions = get_sprite_positions(&input);
+        let mut output = String::with_capacity(240);
+
+        for i in 0..240 {
+            let x = x_positions[i];
+            let current_pixel = (i as i32) % 40;
+
+            if x - 1 <= current_pixel && current_pixel <= x + 1 {
+                output.push('#');
+            } else {
+                output.push('.');
+            }
+        }
+
+        for i in 0..6 {
+            println!("{}", &output[(i * 40)..((i + 1) * 40)]);
+        }
+
+        Err(SolveError::Unimplemented)
     }
 }
 

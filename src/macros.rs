@@ -9,7 +9,7 @@ macro_rules! define_main {
 
 #[macro_export]
 macro_rules! define_integration_test {
-    ($day:ident, $number:literal, $answer_1:literal$(, $answer_2:literal)?) => {
+    ($day:ident, $number:literal, $answer_1:expr$(, $answer_2:expr)?) => {
         use advent_of_code::$day::Solver;
 
         fn get_input() -> String {

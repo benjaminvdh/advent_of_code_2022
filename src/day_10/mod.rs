@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 use crate::{ParseError, SolveError};
 
 #[derive(Debug, PartialEq)]
@@ -31,11 +33,34 @@ fn execute(instructions: &[Instruction]) -> Vec<i32> {
     xx
 }
 
+#[derive(Debug, PartialEq)]
+pub enum Output {
+    Part1(i32),
+    Part2(String),
+}
+
+impl Display for Output {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match self {
+            Output::Part1(value) => write!(f, "{value}"),
+            Output::Part2(value) => {
+                let _ = writeln!(f)?;
+
+                for i in 0..6 {
+                    writeln!(f, "{}", &value[(i * 40)..((i + 1) * 40)])?;
+                }
+
+                Ok(())
+            }
+        }
+    }
+}
+
 pub struct Solver {}
 
 impl crate::Solver for Solver {
     type Input = Vec<Instruction>;
-    type Output = i32;
+    type Output = Output;
     const DAY: u8 = 10;
 
     fn parse(input: String) -> Result<Self::Input, ParseError> {
@@ -45,10 +70,12 @@ impl crate::Solver for Solver {
     fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
         let xx = execute(&input);
 
-        Ok([20, 60, 100, 140, 180, 220]
-            .into_iter()
-            .map(|i| i * xx[*i as usize - 1])
-            .sum())
+        Ok(Output::Part1(
+            [20, 60, 100, 140, 180, 220]
+                .iter()
+                .map(|i| i * xx[*i as usize - 1])
+                .sum(),
+        ))
     }
 
     fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
@@ -66,11 +93,7 @@ impl crate::Solver for Solver {
             }
         }
 
-        for i in 0..6 {
-            println!("{}", &output[(i * 40)..((i + 1) * 40)]);
-        }
-
-        Err(SolveError::Unimplemented)
+        Ok(Output::Part2(output))
     }
 }
 
@@ -88,7 +111,7 @@ fn parse_line(line: &str) -> Result<Instruction, ParseError> {
 mod tests {
     use crate::Solver;
 
-    use super::Instruction;
+    use super::{Instruction, Output};
 
     fn get_input() -> Vec<Instruction> {
         // {{{
@@ -402,6 +425,19 @@ noop";
     fn part_1() {
         let input = get_input();
 
-        assert_eq!(super::Solver::part_1(input).unwrap(), 13140);
+        assert_eq!(super::Solver::part_1(input).unwrap(), Output::Part1(13140));
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+        let ref_output = String::from(
+            r"##..##..##..##..##..##..##..##..##..##..###...###...###...###...###...###...###.####....####....####....####....####....#####.....#####.....#####.....#####.....######......######......######......###########.......#######.......#######.....",
+        );
+
+        assert_eq!(
+            super::Solver::part_2(input).unwrap(),
+            Output::Part2(ref_output)
+        );
     }
 }

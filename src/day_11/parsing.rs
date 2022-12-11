@@ -19,7 +19,7 @@ pub fn parse_monkey(input: &str) -> Result<Monkey, ParseError> {
         items_in: tx,
         items_out: rx,
         operation: parse_operation(operation_line)?,
-        test: parse_test(test_line)?,
+        divisor: parse_divisor(test_line)?,
         true_monkey: parse_true_monkey(true_line)?,
         false_monkey: parse_false_monkey(false_line)?,
     })
@@ -67,13 +67,12 @@ fn parse_operation(operation: &str) -> Result<Box<dyn Fn(usize) -> usize>, Parse
     }
 }
 
-fn parse_test(test: &str) -> Result<Box<dyn Fn(usize) -> bool>, ParseError> {
+fn parse_divisor(test: &str) -> Result<usize, ParseError> {
     let test = test
         .strip_prefix("  Test: divisible by ")
         .ok_or(ParseError::Invalid)?;
 
-    let divisor: usize = test.parse()?;
-    Ok(Box::new(move |test| test % divisor == 0))
+    Ok(test.parse()?)
 }
 
 fn parse_true_monkey(monkey: &str) -> Result<usize, ParseError> {

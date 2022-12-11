@@ -8,7 +8,7 @@ pub struct Monkey {
     items_in: Sender<usize>,
     items_out: Receiver<usize>,
     operation: Box<dyn Fn(usize) -> usize>,
-    test: Box<dyn Fn(usize) -> bool>,
+    divisor: usize,
     true_monkey: usize,
     false_monkey: usize,
 }
@@ -42,7 +42,43 @@ impl crate::Solver for Solver {
                     item = (monkey.operation)(item);
                     item = item / 3;
 
-                    if (monkey.test)(item) {
+                    if item % monkey.divisor == 0 {
+                        let _ = monkeys[monkey.true_monkey].items_in.send(item);
+                    } else {
+                        let _ = monkeys[monkey.false_monkey].items_in.send(item);
+                    }
+                }
+            }
+        }
+
+        inspection_counts.sort_unstable();
+
+        Ok(inspection_counts[inspection_counts.len() - 2]
+            * inspection_counts[inspection_counts.len() - 1])
+    }
+
+    fn part_2(monkeys: Self::Input) -> Result<Self::Output, SolveError> {
+        let mut inspection_counts = Vec::with_capacity(monkeys.len());
+
+        for _ in 0..monkeys.len() {
+            inspection_counts.push(0);
+        }
+
+        let super_divisor = monkeys.iter().fold(1, |acc, monkey| acc * monkey.divisor);
+
+        for _i in 0..10_000 {
+            for (index, monkey) in monkeys.iter().enumerate() {
+                let items = monkey.items_out.try_iter().collect::<Vec<_>>();
+
+                for mut item in items {
+                    inspection_counts[index] += 1;
+
+                    item = (monkey.operation)(item);
+
+                    let remainder = item % monkey.divisor;
+                    let item = item % super_divisor;
+
+                    if remainder == 0 {
                         let _ = monkeys[monkey.true_monkey].items_in.send(item);
                     } else {
                         let _ = monkeys[monkey.false_monkey].items_in.send(item);
@@ -77,7 +113,7 @@ mod tests {
                 items_in: t0,
                 items_out: r0,
                 operation: Box::new(|old| old * 19),
-                test: Box::new(|item| item % 23 == 0),
+                divisor: 23,
                 true_monkey: 2,
                 false_monkey: 3,
             },
@@ -85,7 +121,7 @@ mod tests {
                 items_in: t1,
                 items_out: r1,
                 operation: Box::new(|old| old + 6),
-                test: Box::new(|item| item % 19 == 0),
+                divisor: 19,
                 true_monkey: 2,
                 false_monkey: 0,
             },
@@ -93,7 +129,7 @@ mod tests {
                 items_in: t2,
                 items_out: r2,
                 operation: Box::new(|old| old * old),
-                test: Box::new(|item| item % 13 == 0),
+                divisor: 13,
                 true_monkey: 1,
                 false_monkey: 3,
             },
@@ -101,7 +137,7 @@ mod tests {
                 items_in: t3,
                 items_out: r3,
                 operation: Box::new(|old| old + 3),
-                test: Box::new(|item| item % 17 == 0),
+                divisor: 17,
                 true_monkey: 0,
                 false_monkey: 1,
             },
@@ -168,25 +204,25 @@ Monkey 3:
 
         assert_eq!(monkey0.items_out.try_iter().collect::<Vec<_>>(), items0);
         assert_eq!((monkey0.operation)(79), 1501);
-        assert!((monkey0.test)(46));
+        assert_eq!(monkey0.divisor, 23);
         assert_eq!(monkey0.true_monkey, 2);
         assert_eq!(monkey0.false_monkey, 3);
 
         assert_eq!(monkey1.items_out.try_iter().collect::<Vec<_>>(), items1);
         assert_eq!((monkey1.operation)(54), 60);
-        assert!((monkey1.test)(38));
+        assert_eq!(monkey1.divisor, 19);
         assert_eq!(monkey1.true_monkey, 2);
         assert_eq!(monkey1.false_monkey, 0);
 
         assert_eq!(monkey2.items_out.try_iter().collect::<Vec<_>>(), items2,);
         assert_eq!((monkey2.operation)(79), 6241);
-        assert!((monkey2.test)(26));
+        assert_eq!(monkey2.divisor, 13);
         assert_eq!(monkey2.true_monkey, 1);
         assert_eq!(monkey2.false_monkey, 3);
 
         assert_eq!(monkey3.items_out.try_iter().collect::<Vec<_>>(), items3);
         assert_eq!((monkey3.operation)(74), 77);
-        assert!((monkey3.test)(34));
+        assert_eq!(monkey3.divisor, 17);
         assert_eq!(monkey3.true_monkey, 0);
         assert_eq!(monkey3.false_monkey, 1);
     }
@@ -196,5 +232,12 @@ Monkey 3:
         let input = get_input();
 
         assert_eq!(super::Solver::part_1(input).unwrap(), 10605);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::part_2(input).unwrap(), 2713310158);
     }
 }

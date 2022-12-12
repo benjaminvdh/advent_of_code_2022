@@ -1,9 +1,21 @@
 use crate::{ParseError, SolveError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Node {
     height: u32,
     path_length: Option<usize>,
+}
+
+impl Node {
+    fn get_height(&self) -> u32 {
+        if self.height == 'E' as u32 {
+            'z' as u32
+        } else if self.height == 'S' as u32 {
+            'a' as u32
+        } else {
+            self.height
+        }
+    }
 }
 
 impl From<char> for Node {
@@ -17,54 +29,32 @@ impl From<char> for Node {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Grid {
     grid: Vec<Vec<Node>>,
 }
 
 impl Grid {
-    fn get_grid_width(&self) -> usize {
-        self.grid[0].len()
-    }
-
-    fn get_grid_height(&self) -> usize {
-        self.grid.len()
-    }
-
-    fn get_height(&self, x: usize, y: usize) -> u32 {
-        let height = self.grid[y][x].height;
-
-        if height == 'E' as u32 {
-            'z' as u32
-        } else if height == 'S' as u32 {
-            'a' as u32
-        } else {
-            height
-        }
-    }
-
-    fn get_path_length(&self, x: usize, y: usize) -> Option<usize> {
-        self.grid[y][x].path_length
-    }
-
-    fn find_start(&self) -> Option<(usize, usize)> {
+    fn find_start_node(&self) -> Result<(usize, usize), SolveError> {
         self.find_node_with_height('S' as u32)
+            .ok_or(SolveError::InvalidInput)
     }
 
-    fn find_end(&self) -> Option<(usize, usize)> {
+    fn find_end_node(&self) -> Result<(usize, usize), SolveError> {
         self.find_node_with_height('E' as u32)
+            .ok_or(SolveError::InvalidInput)
     }
 
     fn find_node_with_height(&self, height: u32) -> Option<(usize, usize)> {
-        for i in 0..self.get_grid_width() {
-            for j in 0..self.get_grid_height() {
-                if self.grid[j][i].height == height {
-                    return Some((i, j));
+        self.grid.iter().enumerate().find_map(|(j, row)| {
+            row.iter().enumerate().find_map(|(i, node)| {
+                if node.height == height {
+                    Some((i, j))
+                } else {
+                    None
                 }
-            }
-        }
-
-        None
+            })
+        })
     }
 
     fn visit_neighbors(&mut self, x: usize, y: usize) {
@@ -72,7 +62,7 @@ impl Grid {
             self.visit_neighbor(x - 1, y, x, y);
         }
 
-        if x + 1 < self.get_grid_width() {
+        if x + 1 < self.grid[0].len() {
             self.visit_neighbor(x + 1, y, x, y);
         }
 
@@ -80,52 +70,26 @@ impl Grid {
             self.visit_neighbor(x, y - 1, x, y);
         }
 
-        if y + 1 < self.get_grid_height() {
+        if y + 1 < self.grid.len() {
             self.visit_neighbor(x, y + 1, x, y);
         }
     }
 
     fn visit_neighbor(&mut self, from_x: usize, from_y: usize, to_x: usize, to_y: usize) {
-        let current_path_length = self.get_path_length(to_x, to_y).unwrap();
-
         if self.is_shorter_path(from_x, from_y, to_x, to_y) {
-            self.grid[from_y][from_x].path_length = Some(current_path_length + 1);
+            let length = self.grid[to_y][to_x].path_length.unwrap();
+            self.grid[from_y][from_x].path_length = Some(length + 1);
+
             self.visit_neighbors(from_x, from_y);
         }
     }
 
     fn is_shorter_path(&self, from_x: usize, from_y: usize, to_x: usize, to_y: usize) -> bool {
-        self.get_height(to_x, to_y) <= self.get_height(from_x, from_y) + 1
-            && self
-                .get_path_length(from_x, from_y)
-                .map(|length| length > self.get_path_length(to_x, to_y).unwrap() + 1)
+        self.grid[to_y][to_x].get_height() <= self.grid[from_y][from_x].get_height() + 1
+            && self.grid[from_y][from_x]
+                .path_length
+                .map(|length| length > self.grid[to_y][to_x].path_length.unwrap() + 1)
                 .unwrap_or(true)
-    }
-
-    #[allow(unused)]
-    fn print_heights(&self) {
-        for j in 0..self.get_grid_height() {
-            for i in 0..self.get_grid_width() {
-                print!("{}", char::from_u32(self.grid[j][i].height).unwrap());
-            }
-            println!()
-        }
-    }
-
-    #[allow(unused)]
-    fn print_path_lengths(&self) {
-        for j in 0..self.get_grid_height() {
-            for i in 0..self.get_grid_width() {
-                print!(
-                    " {:>2} ",
-                    self.grid[j][i]
-                        .path_length
-                        .map(|l| l.to_string())
-                        .unwrap_or(String::from("."))
-                );
-            }
-            println!()
-        }
     }
 }
 
@@ -137,42 +101,34 @@ impl crate::Solver for Solver {
     const DAY: u8 = 12;
 
     fn parse(input: String) -> Result<Self::Input, ParseError> {
-        Ok(Grid {
-            grid: input
-                .lines()
-                .map(|line| line.chars().map(|c| Node::from(c)).collect())
-                .collect(),
-        })
+        let grid = input
+            .lines()
+            .map(|line| line.chars().map(|c| c.into()).collect())
+            .collect();
+
+        Ok(Grid { grid })
     }
 
     fn part_1(mut grid: Self::Input) -> Result<Self::Output, SolveError> {
-        let (x, y) = grid.find_end().ok_or(SolveError::InvalidInput)?;
-
+        let (x, y) = grid.find_end_node()?;
         grid.visit_neighbors(x, y);
 
-        let (x, y) = grid.find_start().ok_or(SolveError::InvalidInput)?;
-        grid.get_path_length(x, y).ok_or(SolveError::InvalidInput)
+        let (x, y) = grid.find_start_node()?;
+        grid.grid[y][x].path_length.ok_or(SolveError::InvalidInput)
     }
 
     fn part_2(mut grid: Self::Input) -> Result<Self::Output, SolveError> {
-        let (x, y) = grid.find_end().ok_or(SolveError::InvalidInput)?;
+        let (x, y) = grid.find_end_node()?;
 
         grid.visit_neighbors(x, y);
 
-        let mut min = usize::MAX;
-
-        for j in 0..grid.get_grid_height() {
-            for i in 0..grid.get_grid_width() {
-                if grid.get_height(i, j) == 'a' as u32 {
-                    let height = grid.get_path_length(i, j).unwrap_or(usize::MAX);
-                    if height < min {
-                        min = height;
-                    }
-                }
-            }
-        }
-
-        Ok(min)
+        grid.grid
+            .iter()
+            .flat_map(|row| row.iter())
+            .filter(|node| node.get_height() == 'a' as u32)
+            .filter_map(|node| node.path_length)
+            .min()
+            .ok_or(SolveError::InvalidInput)
     }
 }
 
@@ -237,6 +193,20 @@ mod tests {
                 ],
             ],
         }
+    }
+
+    #[test]
+    fn parsing() {
+        let input = r"Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi";
+
+        assert_eq!(
+            super::Solver::parse(String::from(input)).unwrap(),
+            get_input()
+        );
     }
 
     #[test]

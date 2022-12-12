@@ -153,6 +153,27 @@ impl crate::Solver for Solver {
         let (x, y) = grid.find_start().ok_or(SolveError::InvalidInput)?;
         grid.get_path_length(x, y).ok_or(SolveError::InvalidInput)
     }
+
+    fn part_2(mut grid: Self::Input) -> Result<Self::Output, SolveError> {
+        let (x, y) = grid.find_end().ok_or(SolveError::InvalidInput)?;
+
+        grid.visit_neighbors(x, y);
+
+        let mut min = usize::MAX;
+
+        for j in 0..grid.get_grid_height() {
+            for i in 0..grid.get_grid_width() {
+                if grid.get_height(i, j) == 'a' as u32 {
+                    let height = grid.get_path_length(i, j).unwrap_or(usize::MAX);
+                    if height < min {
+                        min = height;
+                    }
+                }
+            }
+        }
+
+        Ok(min)
+    }
 }
 
 #[cfg(test)]
@@ -223,5 +244,12 @@ mod tests {
         let input = get_input();
 
         assert_eq!(super::Solver::part_1(input).unwrap(), 31);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::part_2(input).unwrap(), 29);
     }
 }

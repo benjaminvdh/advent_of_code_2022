@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use crate::{ParseError, SolveError};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq)]
 pub enum Packet {
     List(Vec<Packet>),
     Int(u32),
@@ -74,6 +74,23 @@ impl crate::Solver for Solver {
             .filter(|(_, (first, second))| first < second)
             .map(|(i, _)| i + 1)
             .sum::<usize>())
+    }
+
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
+        let mut packets: Vec<_> = input.into_iter().flat_map(|(a, b)| vec![a, b]).collect();
+
+        let p1 = Packet::from(vec![Packet::from(vec![2])]);
+        packets.push(p1.clone());
+
+        let p2 = Packet::from(vec![Packet::from(vec![6])]);
+        packets.push(p2.clone());
+
+        packets.sort_unstable();
+
+        let i1 = packets.iter().position(|p| p == &p1).unwrap() + 1;
+        let i2 = packets.iter().position(|p| p == &p2).unwrap() + 1;
+
+        Ok(i1 * i2)
     }
 }
 
@@ -231,5 +248,12 @@ mod tests {
         let input = get_input();
 
         assert_eq!(super::Solver::part_1(input).unwrap(), 13);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::part_2(input).unwrap(), 140);
     }
 }

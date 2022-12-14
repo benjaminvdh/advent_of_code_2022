@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fmt::{self, Debug, Formatter};
 
 use crate::{ParseError, SolveError};
@@ -9,6 +10,7 @@ pub struct Grid {
     min_y: usize,
     width: usize,
     height: usize,
+    overflow: BTreeSet<(usize, usize)>,
 }
 
 impl Grid {
@@ -22,15 +24,28 @@ impl Grid {
             min_y: 0,
             width,
             height,
+            overflow: BTreeSet::new(),
         }
     }
 
     fn get(&self, x: usize, y: usize) -> bool {
-        self.cells[x - self.min_x + (y - self.min_y) * self.width]
+        if self.is_valid_index(x, y) {
+            self.cells[x - self.min_x + (y - self.min_y) * self.width]
+        } else {
+            self.overflow.contains(&(x, y))
+        }
     }
 
     fn set(&mut self, x: usize, y: usize) {
-        self.cells[x - self.min_x + (y - self.min_y) * self.width] = true;
+        if self.is_valid_index(x, y) {
+            self.cells[x - self.min_x + (y - self.min_y) * self.width] = true;
+        } else {
+            let _ = self.overflow.insert((x, y));
+        }
+    }
+
+    fn is_valid_index(&self, x: usize, y: usize) -> bool {
+        self.min_x <= x && x < self.min_x + self.width && y < self.height
     }
 
     fn add_line(&mut self, line: &[(usize, usize)]) {
@@ -73,7 +88,7 @@ impl Grid {
             }
         }
 
-        None
+        Some((x, self.height - 1))
     }
 }
 
@@ -85,8 +100,8 @@ impl Debug for Grid {
             self.min_x, self.min_y, self.width, self.height
         )?;
 
-        for y in self.min_y..self.min_y + self.height {
-            for x in self.min_x..self.min_x + self.width {
+        for y in self.min_y..self.min_y + self.height + 6 {
+            for x in self.min_x - 20..self.min_x + self.width + 20 {
                 if self.get(x, y) {
                     let _ = write!(f, "#")?;
                 } else {
@@ -130,11 +145,28 @@ impl crate::Solver for Solver {
     fn part_1(mut grid: Self::Input) -> Result<Self::Output, SolveError> {
         let mut grains_of_sand = 0;
 
-        while let Some(_) = grid.add_sand() {
-            grains_of_sand += 1;
+        loop {
+            match grid.add_sand() {
+                Some((_, y)) if y < grid.height - 1 => grains_of_sand += 1,
+                _ => break,
+            }
         }
 
         Ok(grains_of_sand)
+    }
+
+    fn part_2(mut grid: Self::Input) -> Result<Self::Output, SolveError> {
+        let mut grains_of_sand = 0;
+
+        loop {
+            match grid.add_sand() {
+                Some((500, 0)) => break,
+                Some(_) => grains_of_sand += 1,
+                None => return Err(SolveError::InvalidInput),
+            }
+        }
+
+        Ok(grains_of_sand + 1)
     }
 }
 
@@ -177,6 +209,8 @@ fn parse_coord(coord: &str) -> Result<(usize, usize), ParseError> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use crate::Solver;
 
     use super::Grid;
@@ -191,6 +225,7 @@ mod tests {
             min_y: 0,
             width,
             height,
+            overflow: BTreeSet::new(),
         };
 
         for x in 496..=498 {
@@ -230,5 +265,29 @@ mod tests {
         let input = get_input();
 
         assert_eq!(super::Solver::part_1(input).unwrap(), 24);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::part_2(input).unwrap(), 93);
+    }
+
+    #[test]
+    fn empty() {
+        let width = 12;
+        let height = 11;
+
+        let grid = Grid {
+            cells: [false].repeat(width * height),
+            min_x: 493,
+            min_y: 0,
+            width,
+            height,
+            overflow: BTreeSet::new(),
+        };
+
+        assert_eq!(super::Solver::part_1(grid).unwrap(), 0);
     }
 }

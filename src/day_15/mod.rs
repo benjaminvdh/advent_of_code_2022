@@ -1,14 +1,14 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 use crate::{ParseError, SolveError};
 
-pub type Point = (i32, i32);
+pub type Point = (i64, i64);
 
 #[derive(Debug, PartialEq)]
 pub struct Sensor {
     position: Point,
     nearest_beacon: Point,
-    nearest_distance: i32,
+    nearest_distance: i64,
 }
 
 impl Sensor {
@@ -23,16 +23,16 @@ impl Sensor {
     }
 }
 
-fn get_distance(a: &Point, b: &Point) -> i32 {
+fn get_distance(a: &Point, b: &Point) -> i64 {
     let (ax, ay) = a;
     let (bx, by) = b;
 
     ax.max(bx) - ax.min(bx) + ay.max(by) - ay.min(by)
 }
 
-pub struct Solver<const Y: i32> {}
+pub struct Solver<const Y: i64, const MAX: i64> {}
 
-impl<const Y: i32> crate::Solver for Solver<Y> {
+impl<const Y: i64, const MAX: i64> crate::Solver for Solver<Y, MAX> {
     type Input = Vec<Sensor>;
     type Output = usize;
     const DAY: u8 = 15;
@@ -61,6 +61,46 @@ impl<const Y: i32> crate::Solver for Solver<Y> {
 
         Ok(points.difference(&beacons).filter(|p| p.1 == Y).count())
     }
+
+    fn part_2(sensors: Self::Input) -> Result<Self::Output, SolveError> {
+        let mut beacon_positions = HashSet::new();
+
+        for sensor in sensors.iter() {
+            let dist = sensor.nearest_distance + 1;
+            let x_start = 0.max(sensor.position.0 - dist);
+            let x_end = MAX.min(sensor.position.0 + dist);
+
+            for x in x_start..=x_end {
+                let diff = (sensor.position.0 - x).abs();
+
+                let p1 = (x, sensor.position.1 + dist - diff);
+
+                if is_out_of_range(&sensors, &p1, MAX) {
+                    let _ = beacon_positions.insert(p1);
+                }
+
+                let p2 = (x, sensor.position.1 - dist + diff);
+
+                if is_out_of_range(&sensors, &p2, MAX) {
+                    let _ = beacon_positions.insert(p2);
+                }
+            }
+        }
+
+        if beacon_positions.len() == 1 {
+            let (x, y) = beacon_positions.iter().next().unwrap();
+            Ok((x * 4000000 + y) as usize)
+        } else {
+            Err(SolveError::InvalidInput)
+        }
+    }
+}
+
+fn is_out_of_range(sensors: &[Sensor], point: &Point, max: i64) -> bool {
+    (0..=max).contains(&point.1)
+        && sensors
+            .iter()
+            .all(|sensor| get_distance(&sensor.position, point) > sensor.nearest_distance)
 }
 
 fn parse_line(line: &str) -> Result<Sensor, ParseError> {
@@ -125,7 +165,7 @@ Sensor at x=14, y=3: closest beacon is at x=15, y=3
 Sensor at x=20, y=1: closest beacon is at x=15, y=3";
 
         assert_eq!(
-            super::Solver::<10>::parse(String::from(input)).unwrap(),
+            super::Solver::<10, 20>::parse(String::from(input)).unwrap(),
             get_input()
         );
     }
@@ -134,6 +174,13 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3";
     fn part_1() {
         let input = get_input();
 
-        assert_eq!(super::Solver::<10>::part_1(input).unwrap(), 26);
+        assert_eq!(super::Solver::<10, 20>::part_1(input).unwrap(), 26);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::<10, 20>::part_2(input).unwrap(), 56000011);
     }
 }

@@ -30,9 +30,11 @@ fn get_distance(a: &Point, b: &Point) -> i64 {
     ax.max(bx) - ax.min(bx) + ay.max(by) - ay.min(by)
 }
 
-pub struct Solver<const Y: i64, const MAX: i64> {}
+pub type Solver = SolverWithParams<2_000_000, 4_000_000>;
 
-impl<const Y: i64, const MAX: i64> crate::Solver for Solver<Y, MAX> {
+pub struct SolverWithParams<const Y: i64, const MAX: i64> {}
+
+impl<const Y: i64, const MAX: i64> crate::Solver for SolverWithParams<Y, MAX> {
     type Input = Vec<Sensor>;
     type Output = usize;
     const DAY: u8 = 15;
@@ -165,7 +167,7 @@ Sensor at x=14, y=3: closest beacon is at x=15, y=3
 Sensor at x=20, y=1: closest beacon is at x=15, y=3";
 
         assert_eq!(
-            super::Solver::<10, 20>::parse(String::from(input)).unwrap(),
+            super::SolverWithParams::<10, 20>::parse(String::from(input)).unwrap(),
             get_input()
         );
     }
@@ -174,13 +176,19 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3";
     fn part_1() {
         let input = get_input();
 
-        assert_eq!(super::Solver::<10, 20>::part_1(input).unwrap(), 26);
+        assert_eq!(
+            super::SolverWithParams::<10, 20>::part_1(input).unwrap(),
+            26
+        );
     }
 
     #[test]
     fn part_2() {
         let input = get_input();
 
-        assert_eq!(super::Solver::<10, 20>::part_2(input).unwrap(), 56000011);
+        assert_eq!(
+            super::SolverWithParams::<10, 20>::part_2(input).unwrap(),
+            56000011
+        );
     }
 }

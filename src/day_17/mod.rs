@@ -1,7 +1,7 @@
 use crate::{ParseError, SolveError};
 
 mod chamber;
-mod point;
+pub mod point;
 mod rock;
 
 use chamber::Chamber;

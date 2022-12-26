@@ -1,7 +1,7 @@
 use crate::day_17::point::Point;
 use crate::{ParseError, SolveError};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Elf {
     cur_pos: Point,
 }
@@ -12,42 +12,60 @@ impl Elf {
     }
 
     fn is_alone(&self, elves: &[Elf]) -> bool {
-        !elves.iter().filter(|&other| other != self).any(|other| {
-            other.cur_pos.x.abs_diff(self.cur_pos.x) <= 1
-                && other.cur_pos.y.abs_diff(self.cur_pos.y) <= 1
-        })
+        let adj_points: [Point; 8] = [
+            self.cur_pos + Point { x: -1, y: -1 },
+            self.cur_pos + Point { x: 0, y: -1 },
+            self.cur_pos + Point { x: 1, y: -1 },
+            self.cur_pos + Point { x: -1, y: 0 },
+            self.cur_pos + Point { x: 1, y: 0 },
+            self.cur_pos + Point { x: -1, y: 1 },
+            self.cur_pos + Point { x: 0, y: 1 },
+            self.cur_pos + Point { x: 1, y: 1 },
+        ];
+
+        !elves
+            .iter()
+            .any(|other| adj_points.iter().any(|p| &other.cur_pos == p))
     }
 
-    fn can_move_north(&self, elves: &[Elf]) -> bool {
-        !elves.iter().any(|other| other.is_north_of(self))
+    fn try_propose_north(&self, elves: &[Elf]) -> Option<Point> {
+        if !elves.iter().any(|other| {
+            other.cur_pos.y == self.cur_pos.y - 1 && other.cur_pos.x.abs_diff(self.cur_pos.x) <= 1
+        }) {
+            Some(self.cur_pos + Point { x: 0, y: -1 })
+        } else {
+            None
+        }
     }
 
-    fn can_move_south(&self, elves: &[Elf]) -> bool {
-        !elves.iter().any(|other| other.is_south_of(self))
+    fn try_propose_south(&self, elves: &[Elf]) -> Option<Point> {
+        if !elves.iter().any(|other| {
+            other.cur_pos.y == self.cur_pos.y + 1 && other.cur_pos.x.abs_diff(self.cur_pos.x) <= 1
+        }) {
+            Some(self.cur_pos + Point { x: 0, y: 1 })
+        } else {
+            None
+        }
     }
 
-    fn can_move_west(&self, elves: &[Elf]) -> bool {
-        !elves.iter().any(|other| other.is_west_of(self))
+    fn try_propose_west(&self, elves: &[Elf]) -> Option<Point> {
+        if !elves.iter().any(|other| {
+            other.cur_pos.x == self.cur_pos.x - 1 && other.cur_pos.y.abs_diff(self.cur_pos.y) <= 1
+        }) {
+            Some(self.cur_pos + Point { x: -1, y: 0 })
+        } else {
+            None
+        }
     }
 
-    fn can_move_east(&self, elves: &[Elf]) -> bool {
-        !elves.iter().any(|other| other.is_east_of(self))
-    }
-
-    fn is_north_of(&self, other: &Elf) -> bool {
-        self.cur_pos.y == other.cur_pos.y - 1 && self.cur_pos.x.abs_diff(other.cur_pos.x) <= 1
-    }
-
-    fn is_south_of(&self, other: &Elf) -> bool {
-        self.cur_pos.y == other.cur_pos.y + 1 && self.cur_pos.x.abs_diff(other.cur_pos.x) <= 1
-    }
-
-    fn is_west_of(&self, other: &Elf) -> bool {
-        self.cur_pos.x == other.cur_pos.x - 1 && self.cur_pos.y.abs_diff(other.cur_pos.y) <= 1
-    }
-
-    fn is_east_of(&self, other: &Elf) -> bool {
-        self.cur_pos.x == other.cur_pos.x + 1 && self.cur_pos.y.abs_diff(other.cur_pos.y) <= 1
+    fn try_propose_east(&self, elves: &[Elf]) -> Option<Point> {
+        if !elves.iter().any(|other| {
+            other.cur_pos.x == self.cur_pos.x + 1 && other.cur_pos.y.abs_diff(self.cur_pos.y) <= 1
+        }) {
+            Some(self.cur_pos + Point { x: 1, y: 0 })
+        } else {
+            None
+        }
     }
 }
 
@@ -62,6 +80,59 @@ fn get_rect(elves: &[Elf]) -> (Point, Point) {
 
 fn count_empty_tiles(rect: &(Point, Point), elves: &[Elf]) -> usize {
     ((rect.1.x - rect.0.x + 1) * (rect.1.y - rect.0.y + 1)) as usize - elves.len()
+}
+
+type Strategies = [Box<dyn Fn(&Elf, &[Elf]) -> Option<Point>>; 4];
+
+fn get_strategies() -> Strategies {
+    [
+        Box::new(Elf::try_propose_north),
+        Box::new(Elf::try_propose_south),
+        Box::new(Elf::try_propose_west),
+        Box::new(Elf::try_propose_east),
+    ]
+}
+
+fn move_elves(elves: &mut [Elf], round: usize, strats: &Strategies) -> bool {
+    let mut next_positions: Vec<_> = elves
+        .iter()
+        .map(|elf| {
+            if elf.is_alone(&elves) {
+                None
+            } else if let Some(pos) = strats[round % strats.len()](elf, &elves) {
+                Some(pos)
+            } else if let Some(pos) = strats[(round + 1) % strats.len()](elf, &elves) {
+                Some(pos)
+            } else if let Some(pos) = strats[(round + 2) % strats.len()](elf, &elves) {
+                Some(pos)
+            } else if let Some(pos) = strats[(round + 3) % strats.len()](elf, &elves) {
+                Some(pos)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let duplicates: Vec<_> = next_positions
+        .iter()
+        .map(|pos| next_positions.iter().filter(|&other| other == pos).count() > 1)
+        .collect();
+
+    for (pos, is_duplicate) in next_positions.iter_mut().zip(duplicates.into_iter()) {
+        if is_duplicate {
+            *pos = None;
+        }
+    }
+
+    let any_elf_moves = next_positions.iter().any(|p| p.is_some());
+
+    for (elf, pos) in elves.iter_mut().zip(next_positions.into_iter()) {
+        if let Some(pos) = pos {
+            elf.cur_pos = pos;
+        }
+    }
+
+    any_elf_moves
 }
 
 #[allow(unused)]
@@ -100,78 +171,29 @@ impl crate::Solver for Solver {
     }
 
     fn part_1(mut elves: Self::Input) -> Result<Self::Output, SolveError> {
-        let strats: [Box<dyn Fn(&Elf, &[Elf]) -> Option<Point>>; 4] = [
-            Box::new(|elf, elves| {
-                if elf.can_move_north(elves) {
-                    Some(Point::new(elf.cur_pos.x, elf.cur_pos.y - 1))
-                } else {
-                    None
-                }
-            }),
-            Box::new(|elf, elves| {
-                if elf.can_move_south(elves) {
-                    Some(Point::new(elf.cur_pos.x, elf.cur_pos.y + 1))
-                } else {
-                    None
-                }
-            }),
-            Box::new(|elf, elves| {
-                if elf.can_move_west(elves) {
-                    Some(Point::new(elf.cur_pos.x - 1, elf.cur_pos.y))
-                } else {
-                    None
-                }
-            }),
-            Box::new(|elf, elves| {
-                if elf.can_move_east(elves) {
-                    Some(Point::new(elf.cur_pos.x + 1, elf.cur_pos.y))
-                } else {
-                    None
-                }
-            }),
-        ];
+        let strats = get_strategies();
 
         for round in 0..10 {
-            let mut next_positions: Vec<_> = elves
-                .iter()
-                .map(|elf| {
-                    if elf.is_alone(&elves) {
-                        None
-                    } else if let Some(pos) = strats[round % strats.len()](elf, &elves) {
-                        Some(pos)
-                    } else if let Some(pos) = strats[(round + 1) % strats.len()](elf, &elves) {
-                        Some(pos)
-                    } else if let Some(pos) = strats[(round + 2) % strats.len()](elf, &elves) {
-                        Some(pos)
-                    } else if let Some(pos) = strats[(round + 3) % strats.len()](elf, &elves) {
-                        Some(pos)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            let duplicates: Vec<_> = next_positions
-                .iter()
-                .map(|pos| next_positions.iter().filter(|&other| other == pos).count() > 1)
-                .collect();
-
-            for (pos, is_duplicate) in next_positions.iter_mut().zip(duplicates.iter()) {
-                if *is_duplicate {
-                    *pos = None;
-                }
-            }
-
-            for (elf, pos) in elves.iter_mut().zip(next_positions.into_iter()) {
-                if let Some(pos) = pos {
-                    elf.cur_pos = pos;
-                }
-            }
+            let _ = move_elves(&mut elves, round, &strats);
         }
 
         let rect = get_rect(&elves);
 
         Ok(count_empty_tiles(&rect, &elves))
+    }
+
+    fn part_2(mut elves: Self::Input) -> Result<Self::Output, SolveError> {
+        let strats = get_strategies();
+
+        for round in 0.. {
+            let b = move_elves(&mut elves, round, &strats);
+
+            if !b {
+                return Ok(round + 1);
+            }
+        }
+
+        unreachable!()
     }
 }
 
@@ -242,5 +264,10 @@ mod tests {
     #[test]
     fn part_1() {
         assert_eq!(super::Solver::part_1(get_input()).unwrap(), 110);
+    }
+
+    #[test]
+    fn part_2() {
+        assert_eq!(super::Solver::part_2(get_input()).unwrap(), 20);
     }
 }

@@ -1,11 +1,14 @@
 use std::convert::{TryFrom, TryInto};
+use std::fmt::{self, Display, Formatter};
 
+use crate::day_17::point::Point;
 use crate::{ParseError, SolveError};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Grid {
     width: usize,
     height: usize,
+    destination: Point,
     blizzards: Vec<u8>,
 }
 
@@ -35,6 +38,7 @@ impl Grid {
         Self {
             width,
             height,
+            destination: Point::new(0, 0),
             blizzards: [0].repeat(width * height),
         }
     }
@@ -47,6 +51,12 @@ impl Grid {
         self.get(x, y).count_ones()
     }
 
+    pub fn is_valid(&self, pos: &Point) -> bool {
+        let &Point { x, y } = pos;
+        (x > 0 && x < (self.width - 1) as i64 && y > 0 && y < (self.height - 1) as i64)
+            || pos == &self.destination
+    }
+
     pub fn add_blizzard(&mut self, x: usize, y: usize, dir: Direction) {
         let index = self.get_index(x, y);
         self.blizzards[index] |= dir as u8;
@@ -56,13 +66,21 @@ impl Grid {
         self.get(x, y) & dir as u8 != 0
     }
 
+    pub fn has_any_blizzard(&self, point: &Point) -> bool {
+        let &Point { x, y } = point;
+        self.get(x as usize, y as usize) > 0
+    }
+
     pub fn remove_blizzard(&mut self, x: usize, y: usize, dir: Direction) {
         let index = self.get_index(x, y);
         self.blizzards[index] &= !(dir as u8);
     }
 
     pub fn updated(&self) -> Self {
-        let mut new_grid = Self::new(self.width, self.height);
+        let mut new_grid = Grid {
+            blizzards: [0].repeat(self.width * self.height),
+            ..*self
+        };
 
         for y in 1..self.height - 1 {
             for x in 1..self.width - 1 {
@@ -114,35 +132,56 @@ impl Grid {
     fn get_index(&self, x: usize, y: usize) -> usize {
         y * self.width + x
     }
+}
 
-    #[allow(unused)]
-    pub fn print(&self) {
+impl Display for Grid {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        let _ = writeln!(f, "Grid {{")?;
+
         for y in 0..self.height {
+            let _ = write!(f, "    ")?;
+
             for x in 0..self.width {
-                match self.get_num_blizzards(x, y) {
-                    0 => print!("."),
+                let _ = match self.get_num_blizzards(x, y) {
+                    0 => write!(f, "."),
                     1 => match self.get(x, y).try_into() {
-                        Ok(Direction::North) => print!("^"),
-                        Ok(Direction::East) => print!(">"),
-                        Ok(Direction::South) => print!("v"),
-                        Ok(Direction::West) => print!("<"),
+                        Ok(Direction::North) => write!(f, "^"),
+                        Ok(Direction::East) => write!(f, ">"),
+                        Ok(Direction::South) => write!(f, "v"),
+                        Ok(Direction::West) => write!(f, "<"),
                         Err(_) => unreachable!(),
                     },
-                    num_blizzards => print!("{num_blizzards}"),
-                }
+                    num_blizzards => write!(f, "{num_blizzards}"),
+                }?;
             }
 
-            println!();
+            let _ = writeln!(f)?;
         }
 
-        println!();
+        let _ = writeln!(f, "}}")?;
+
+        Ok(())
     }
+}
+
+fn generate_cyclic_grids(initial_grid: Grid) -> Vec<Grid> {
+    // TODO: Use lcm(width, height)
+    let period = initial_grid.width * initial_grid.height;
+
+    let mut grids = vec![initial_grid];
+
+    for _ in 0..period {
+        let new_grid = grids.last().unwrap().updated();
+        grids.push(new_grid);
+    }
+
+    grids
 }
 
 pub struct Solver {}
 
 impl crate::Solver for Solver {
-    type Input = Grid;
+    type Input = (Grid, Point);
     type Output = usize;
     const DAY: u8 = 24;
 
@@ -150,9 +189,118 @@ impl crate::Solver for Solver {
         todo!()
     }
 
-    fn part_1(_input: Self::Input) -> Result<Self::Output, SolveError> {
-        Err(SolveError::Unimplemented)
+    fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
+        let (grid, expedition) = input;
+
+        let grids = generate_cyclic_grids(grid);
+
+        get_fastest_path(&grids, 1, expedition + Point::new(0, 1), usize::MAX)
+            .ok_or(SolveError::InvalidInput)
     }
+}
+
+fn get_fastest_path(
+    grids: &[Grid],
+    round: usize,
+    expedition: Point,
+    fastest_path: usize,
+) -> Option<usize> {
+    if round >= fastest_path || round > 20 {
+        return None;
+    }
+
+    let grid = &grids[round % grids.len()];
+
+    if expedition + Point::new(0, 1) == grid.destination {
+        return Some(round);
+    }
+
+    let new_path_south = if can_move_south(grid, expedition) {
+        get_fastest_path(
+            grids,
+            round + 1,
+            expedition + Point::new(0, 1),
+            fastest_path,
+        )
+    } else {
+        None
+    };
+
+    let new_path_east = if can_move_east(grid, expedition) {
+        get_fastest_path(
+            grids,
+            round + 1,
+            expedition + Point::new(1, 0),
+            fastest_path,
+        )
+    } else {
+        None
+    };
+
+    let new_path_west = if can_move_west(grid, expedition) {
+        get_fastest_path(
+            grids,
+            round + 1,
+            expedition + Point::new(-1, 0),
+            fastest_path,
+        )
+    } else {
+        None
+    };
+
+    let new_path_north = if can_move_north(grid, expedition) {
+        get_fastest_path(
+            grids,
+            round + 1,
+            expedition + Point::new(0, -1),
+            fastest_path,
+        )
+    } else {
+        None
+    };
+
+    let new_path_stationary = if can_stay_stationary(grid, expedition) {
+        get_fastest_path(grids, round + 1, expedition, fastest_path)
+    } else {
+        None
+    };
+
+    let new_paths = [
+        new_path_north,
+        new_path_east,
+        new_path_south,
+        new_path_west,
+        new_path_stationary,
+    ];
+    new_paths.iter().filter_map(|new_path| *new_path).min()
+}
+
+fn can_move_north(grid: &Grid, expedition: Point) -> bool {
+    let new_pos = expedition + Point::new(0, -1);
+
+    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
+}
+
+fn can_move_east(grid: &Grid, expedition: Point) -> bool {
+    let new_pos = expedition + Point::new(1, 0);
+
+    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
+}
+
+fn can_move_south(grid: &Grid, expedition: Point) -> bool {
+    let new_pos = expedition + Point::new(0, 1);
+
+    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
+}
+
+fn can_move_west(grid: &Grid, expedition: Point) -> bool {
+    let new_pos = expedition + Point::new(-1, 0);
+
+    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
+}
+
+fn can_stay_stationary(grid: &Grid, expedition: Point) -> bool {
+    !grid.has_any_blizzard(&expedition)
 }
 
 #[cfg(test)]
@@ -161,7 +309,7 @@ mod tests {
 
     use crate::Solver;
 
-    fn get_input() -> Grid {
+    fn get_input() -> (Grid, Point) {
         let mut grid = Grid::new(8, 6);
 
         grid.add_blizzard(1, 1, Direction::East);
@@ -187,7 +335,9 @@ mod tests {
         grid.add_blizzard(5, 4, Direction::North);
         grid.add_blizzard(6, 4, Direction::East);
 
-        grid
+        grid.destination = Point::new(6, 5);
+
+        (grid, Point::new(1, 0))
     }
 
     #[test]
@@ -207,7 +357,7 @@ mod tests {
 
     #[test]
     fn update_grid() {
-        let mut grid = get_input();
+        let (mut grid, _) = get_input();
 
         for _ in 0..18 {
             grid = grid.updated();
@@ -239,5 +389,12 @@ mod tests {
         ref_grid.add_blizzard(6, 4, Direction::East);
 
         assert_eq!(grid, ref_grid);
+    }
+
+    #[test]
+    fn part_1() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::part_1(input).unwrap(), 18);
     }
 }

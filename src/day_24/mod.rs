@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::convert::{TryFrom, TryInto};
 use std::fmt::{self, Display, Formatter};
 
@@ -53,8 +54,7 @@ impl Grid {
 
     pub fn is_valid(&self, pos: &Point) -> bool {
         let &Point { x, y } = pos;
-        (x > 0 && x < (self.width - 1) as i64 && y > 0 && y < (self.height - 1) as i64)
-            || pos == &self.destination
+        0 < x && x < (self.width - 1) as i64 && 0 < y && y < (self.height - 1) as i64
     }
 
     pub fn add_blizzard(&mut self, x: usize, y: usize, dir: Direction) {
@@ -164,20 +164,6 @@ impl Display for Grid {
     }
 }
 
-fn generate_cyclic_grids(initial_grid: Grid) -> Vec<Grid> {
-    // TODO: Use lcm(width, height)
-    let period = initial_grid.width * initial_grid.height;
-
-    let mut grids = vec![initial_grid];
-
-    for _ in 0..period {
-        let new_grid = grids.last().unwrap().updated();
-        grids.push(new_grid);
-    }
-
-    grids
-}
-
 pub struct Solver {}
 
 impl crate::Solver for Solver {
@@ -192,115 +178,40 @@ impl crate::Solver for Solver {
     fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
         let (grid, expedition) = input;
 
-        let grids = generate_cyclic_grids(grid);
-
-        get_fastest_path(&grids, 1, expedition + Point::new(0, 1), usize::MAX)
+        get_fastest_path(grid, [expedition].iter().copied().collect())
             .ok_or(SolveError::InvalidInput)
     }
 }
 
-fn get_fastest_path(
-    grids: &[Grid],
-    round: usize,
-    expedition: Point,
-    fastest_path: usize,
-) -> Option<usize> {
-    if round >= fastest_path || round > 20 {
-        return None;
+fn get_neighbors(pos: Point) -> [Point; 5] {
+    [
+        pos,
+        pos + Point::new(0, -1),
+        pos + Point::new(1, 0),
+        pos + Point::new(0, 1),
+        pos + Point::new(-1, 0),
+    ]
+}
+
+fn get_fastest_path(grid: Grid, expeditions: HashSet<Point>) -> Option<usize> {
+    if expeditions.is_empty() {
+        None
+    } else if expeditions
+        .iter()
+        .any(|expedition| expedition + Point::new(0, 1) == grid.destination)
+    {
+        Some(1)
+    } else {
+        let grid = grid.updated();
+
+        let new_positions: HashSet<Point> = expeditions
+            .into_iter()
+            .flat_map(|expedition| get_neighbors(expedition))
+            .filter(|expedition| grid.is_valid(expedition) && !grid.has_any_blizzard(expedition))
+            .collect();
+
+        get_fastest_path(grid, new_positions).map(|path| path + 1)
     }
-
-    let grid = &grids[round % grids.len()];
-
-    if expedition + Point::new(0, 1) == grid.destination {
-        return Some(round);
-    }
-
-    let new_path_south = if can_move_south(grid, expedition) {
-        get_fastest_path(
-            grids,
-            round + 1,
-            expedition + Point::new(0, 1),
-            fastest_path,
-        )
-    } else {
-        None
-    };
-
-    let new_path_east = if can_move_east(grid, expedition) {
-        get_fastest_path(
-            grids,
-            round + 1,
-            expedition + Point::new(1, 0),
-            fastest_path,
-        )
-    } else {
-        None
-    };
-
-    let new_path_west = if can_move_west(grid, expedition) {
-        get_fastest_path(
-            grids,
-            round + 1,
-            expedition + Point::new(-1, 0),
-            fastest_path,
-        )
-    } else {
-        None
-    };
-
-    let new_path_north = if can_move_north(grid, expedition) {
-        get_fastest_path(
-            grids,
-            round + 1,
-            expedition + Point::new(0, -1),
-            fastest_path,
-        )
-    } else {
-        None
-    };
-
-    let new_path_stationary = if can_stay_stationary(grid, expedition) {
-        get_fastest_path(grids, round + 1, expedition, fastest_path)
-    } else {
-        None
-    };
-
-    let new_paths = [
-        new_path_north,
-        new_path_east,
-        new_path_south,
-        new_path_west,
-        new_path_stationary,
-    ];
-    new_paths.iter().filter_map(|new_path| *new_path).min()
-}
-
-fn can_move_north(grid: &Grid, expedition: Point) -> bool {
-    let new_pos = expedition + Point::new(0, -1);
-
-    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
-}
-
-fn can_move_east(grid: &Grid, expedition: Point) -> bool {
-    let new_pos = expedition + Point::new(1, 0);
-
-    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
-}
-
-fn can_move_south(grid: &Grid, expedition: Point) -> bool {
-    let new_pos = expedition + Point::new(0, 1);
-
-    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
-}
-
-fn can_move_west(grid: &Grid, expedition: Point) -> bool {
-    let new_pos = expedition + Point::new(-1, 0);
-
-    grid.is_valid(&new_pos) && !grid.has_any_blizzard(&new_pos)
-}
-
-fn can_stay_stationary(grid: &Grid, expedition: Point) -> bool {
-    !grid.has_any_blizzard(&expedition)
 }
 
 #[cfg(test)]

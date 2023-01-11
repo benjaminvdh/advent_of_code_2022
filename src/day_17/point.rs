@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::ops::{Add, AddAssign};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Point {
     pub x: i64,
     pub y: i64,

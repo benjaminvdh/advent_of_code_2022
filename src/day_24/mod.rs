@@ -34,6 +34,20 @@ impl TryFrom<u8> for Direction {
     }
 }
 
+impl TryFrom<char> for Direction {
+    type Error = ParseError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            '^' => Ok(Direction::North),
+            '>' => Ok(Direction::East),
+            'v' => Ok(Direction::South),
+            '<' => Ok(Direction::West),
+            _ => Err(ParseError::Invalid),
+        }
+    }
+}
+
 impl Grid {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
@@ -171,8 +185,26 @@ impl crate::Solver for Solver {
     type Output = usize;
     const DAY: u8 = 24;
 
-    fn parse(_input: String) -> Result<Self::Input, ParseError> {
-        todo!()
+    fn parse(input: String) -> Result<Self::Input, ParseError> {
+        let lines: Vec<_> = input.lines().collect();
+        let num_lines = lines.len();
+
+        let expedition = Point::new(
+            parse_border(lines.first().ok_or(ParseError::Invalid)?)? as i64,
+            0,
+        );
+
+        let width = lines.first().ok_or(ParseError::Invalid)?.chars().count();
+        let height = num_lines;
+        let destination = parse_border(lines.last().ok_or(ParseError::Invalid)?)?;
+        let mut grid = Grid::new(width, height);
+        grid.destination = Point::new(destination as i64, num_lines as i64 - 1);
+
+        for (i, line) in lines[1..num_lines - 1].iter().enumerate() {
+            parse_line(&mut grid, line, i + 1)?;
+        }
+
+        Ok((grid, expedition))
     }
 
     fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
@@ -181,6 +213,25 @@ impl crate::Solver for Solver {
         get_fastest_path(grid, [expedition].iter().copied().collect())
             .ok_or(SolveError::InvalidInput)
     }
+}
+
+fn parse_line(grid: &mut Grid, line: &str, y: usize) -> Result<(), ParseError> {
+    for (i, c) in line.char_indices() {
+        if c == '.' || c == '#' {
+            continue;
+        }
+
+        grid.add_blizzard(i, y, c.try_into()?);
+    }
+
+    Ok(())
+}
+
+fn parse_border(line: &str) -> Result<usize, ParseError> {
+    line.char_indices()
+        .find(|(_, c)| *c == '.')
+        .map(|(i, _)| i)
+        .ok_or(ParseError::Invalid)
 }
 
 fn get_neighbors(pos: Point) -> [Point; 5] {
@@ -298,6 +349,8 @@ mod tests {
 
         ref_grid.add_blizzard(1, 4, Direction::West);
         ref_grid.add_blizzard(6, 4, Direction::East);
+
+        ref_grid.destination = Point::new(6, 5);
 
         assert_eq!(grid, ref_grid);
     }

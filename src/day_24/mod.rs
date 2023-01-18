@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::convert::{TryFrom, TryInto};
 use std::fmt::{self, Display, Formatter};
+use std::ops::Add;
 
 use crate::day_17::point::Point;
 use crate::{ParseError, SolveError};
@@ -10,7 +11,32 @@ pub struct Grid {
     width: usize,
     height: usize,
     destination: Point,
+    start: Point,
     blizzards: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+pub enum Status {
+    WithoutSnacks,
+    GettingSnacks,
+    WithSnacks,
+}
+
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+pub struct Expedition {
+    status: Status,
+    pos: Point,
+}
+
+impl Add<Point> for Expedition {
+    type Output = Expedition;
+
+    fn add(self, pos: Point) -> Self::Output {
+        Self::Output {
+            status: self.status,
+            pos: self.pos + pos,
+        }
+    }
 }
 
 pub enum Direction {
@@ -21,7 +47,7 @@ pub enum Direction {
 }
 
 impl TryFrom<u8> for Direction {
-    type Error = ();
+    type Error = ParseError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -29,7 +55,7 @@ impl TryFrom<u8> for Direction {
             2 => Ok(Direction::East),
             4 => Ok(Direction::South),
             8 => Ok(Direction::West),
-            _ => Err(()),
+            _ => Err(ParseError::Invalid),
         }
     }
 }
@@ -54,6 +80,7 @@ impl Grid {
             width,
             height,
             destination: Point::new(0, 0),
+            start: Point::new(0, 0),
             blizzards: [0].repeat(width * height),
         }
     }
@@ -68,7 +95,9 @@ impl Grid {
 
     pub fn is_valid(&self, pos: &Point) -> bool {
         let &Point { x, y } = pos;
-        0 < x && x < (self.width - 1) as i64 && 0 < y && y < (self.height - 1) as i64
+        (0 < x && x < (self.width - 1) as i64 && 0 < y && y < (self.height - 1) as i64)
+            || pos == &self.destination
+            || pos == &self.start
     }
 
     pub fn add_blizzard(&mut self, x: usize, y: usize, dir: Direction) {
@@ -199,6 +228,7 @@ impl crate::Solver for Solver {
         let destination = parse_border(lines.last().ok_or(ParseError::Invalid)?)?;
         let mut grid = Grid::new(width, height);
         grid.destination = Point::new(destination as i64, num_lines as i64 - 1);
+        grid.start = expedition;
 
         for (i, line) in lines[1..num_lines - 1].iter().enumerate() {
             parse_line(&mut grid, line, i + 1)?;
@@ -208,10 +238,27 @@ impl crate::Solver for Solver {
     }
 
     fn part_1(input: Self::Input) -> Result<Self::Output, SolveError> {
-        let (grid, expedition) = input;
+        let (grid, start) = input;
 
-        get_fastest_path(grid, [expedition].iter().copied().collect())
-            .ok_or(SolveError::InvalidInput)
+        let mut expeditions = HashSet::new();
+        expeditions.insert(Expedition {
+            status: Status::WithSnacks,
+            pos: start,
+        });
+
+        get_fastest_path(grid, expeditions).ok_or(SolveError::InvalidInput)
+    }
+
+    fn part_2(input: Self::Input) -> Result<Self::Output, SolveError> {
+        let (grid, start) = input;
+
+        let mut expeditions = HashSet::new();
+        expeditions.insert(Expedition {
+            status: Status::WithoutSnacks,
+            pos: start,
+        });
+
+        get_fastest_path(grid, expeditions).ok_or(SolveError::InvalidInput)
     }
 }
 
@@ -234,34 +281,46 @@ fn parse_border(line: &str) -> Result<usize, ParseError> {
         .ok_or(ParseError::Invalid)
 }
 
-fn get_neighbors(pos: Point) -> [Point; 5] {
+fn get_neighbors(expedition: Expedition) -> [Expedition; 5] {
     [
-        pos,
-        pos + Point::new(0, -1),
-        pos + Point::new(1, 0),
-        pos + Point::new(0, 1),
-        pos + Point::new(-1, 0),
+        expedition,
+        expedition + Point::new(0, -1),
+        expedition + Point::new(1, 0),
+        expedition + Point::new(0, 1),
+        expedition + Point::new(-1, 0),
     ]
 }
 
-fn get_fastest_path(grid: Grid, expeditions: HashSet<Point>) -> Option<usize> {
+fn get_fastest_path(grid: Grid, expeditions: HashSet<Expedition>) -> Option<usize> {
     if expeditions.is_empty() {
         None
-    } else if expeditions
-        .iter()
-        .any(|expedition| expedition + Point::new(0, 1) == grid.destination)
-    {
-        Some(1)
+    } else if expeditions.iter().any(|expedition| {
+        expedition.status == Status::WithSnacks && expedition.pos == grid.destination
+    }) {
+        Some(0)
     } else {
         let grid = grid.updated();
 
-        let new_positions: HashSet<Point> = expeditions
+        let expeditions = expeditions
             .into_iter()
             .flat_map(|expedition| get_neighbors(expedition))
-            .filter(|expedition| grid.is_valid(expedition) && !grid.has_any_blizzard(expedition))
+            .filter(|expedition| {
+                grid.is_valid(&expedition.pos) && !grid.has_any_blizzard(&expedition.pos)
+            })
+            .map(|mut expedition| {
+                let Expedition { pos, status } = expedition;
+
+                if matches!(status, Status::WithoutSnacks) && pos == grid.destination {
+                    expedition.status = Status::GettingSnacks;
+                } else if matches!(status, Status::GettingSnacks) && pos == grid.start {
+                    expedition.status = Status::WithSnacks;
+                }
+
+                expedition
+            })
             .collect();
 
-        get_fastest_path(grid, new_positions).map(|path| path + 1)
+        get_fastest_path(grid, expeditions).map(|path| path + 1)
     }
 }
 
@@ -297,6 +356,7 @@ mod tests {
         grid.add_blizzard(5, 4, Direction::North);
         grid.add_blizzard(6, 4, Direction::East);
 
+        grid.start = Point::new(1, 0);
         grid.destination = Point::new(6, 5);
 
         (grid, Point::new(1, 0))
@@ -350,6 +410,7 @@ mod tests {
         ref_grid.add_blizzard(1, 4, Direction::West);
         ref_grid.add_blizzard(6, 4, Direction::East);
 
+        ref_grid.start = Point::new(1, 0);
         ref_grid.destination = Point::new(6, 5);
 
         assert_eq!(grid, ref_grid);
@@ -360,5 +421,12 @@ mod tests {
         let input = get_input();
 
         assert_eq!(super::Solver::part_1(input).unwrap(), 18);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::part_2(input).unwrap(), 54);
     }
 }

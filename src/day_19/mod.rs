@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-use std::ops::SubAssign;
 use std::thread;
 
 use crate::{ParseError, SolveError};
@@ -10,35 +8,6 @@ struct Resources {
     clay: usize,
     obsidian: usize,
     geodes: usize,
-}
-
-impl PartialOrd for Resources {
-    fn partial_cmp(&self, other: &Resources) -> Option<Ordering> {
-        if self.ore < other.ore
-            || self.clay < other.clay
-            || self.obsidian < other.obsidian
-            || self.geodes < other.geodes
-        {
-            Some(Ordering::Less)
-        } else if self.ore > other.ore
-            || self.clay > other.clay
-            || self.obsidian > other.obsidian
-            || self.geodes > other.geodes
-        {
-            Some(Ordering::Greater)
-        } else {
-            Some(Ordering::Equal)
-        }
-    }
-}
-
-impl SubAssign<&Resources> for Resources {
-    fn sub_assign(&mut self, rhs: &Resources) {
-        self.ore -= rhs.ore;
-        self.clay -= rhs.clay;
-        self.obsidian -= rhs.obsidian;
-        self.geodes -= rhs.geodes;
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -53,6 +22,7 @@ pub struct Blueprint {
 struct Factory<'a> {
     resources: Resources,
     blueprint: &'a Blueprint,
+    highest_ore_cost: usize,
     ore_robots: usize,
     clay_robots: usize,
     obsidian_robots: usize,
@@ -64,6 +34,12 @@ impl<'a> Factory<'a> {
         Self {
             resources: Resources::default(),
             blueprint,
+            highest_ore_cost: blueprint
+                .ore_robot_cost
+                .ore
+                .max(blueprint.clay_robot_cost.ore)
+                .max(blueprint.obsidian_robot_cost.ore)
+                .max(blueprint.geode_robot_cost.ore),
             ore_robots: 1,
             clay_robots: 0,
             obsidian_robots: 0,
@@ -71,27 +47,27 @@ impl<'a> Factory<'a> {
         }
     }
 
-    fn run(&self, time: usize) -> usize {
+    fn run(&self, time: usize, mut max: usize) -> usize {
         if time == 24 {
             self.resources.geodes
-        } else if self.can_build_geode_robot() {
-            self.build_geode_robot().run(time + 1)
+        } else if self.can_build_geode_robot(time, max) {
+            self.build_geode_robot().run(time + 1, max)
         } else {
-            let mut max = 0;
-
-            if self.can_build_obsidian_robot() {
-                max = self.build_obsidian_robot().run(time + 1);
+            if self.can_build_obsidian_robot(time, max) {
+                max = self.build_obsidian_robot().run(time + 1, max);
             }
 
-            if self.can_build_ore_robot() {
-                max = max.max(self.build_ore_robot().run(time + 1));
+            if self.can_build_ore_robot(time, max) {
+                max = max.max(self.build_ore_robot().run(time + 1, max));
             }
 
-            if self.can_build_clay_robot() {
-                max = max.max(self.build_clay_robot().run(time + 1));
+            if self.can_build_clay_robot(time, max) {
+                max = max.max(self.build_clay_robot().run(time + 1, max));
             }
 
-            max = max.max(self.build_nothing().run(time + 1));
+            if self.can_build_nothing(time, max) {
+                max = max.max(self.build_nothing().run(time + 1, max));
+            }
 
             max
         }
@@ -104,55 +80,67 @@ impl<'a> Factory<'a> {
         self.resources.geodes += self.geode_robots;
     }
 
-    fn can_build_ore_robot(&self) -> bool {
-        self.resources >= self.blueprint.ore_robot_cost
-            && self.ore_robots
-                < self
-                    .blueprint
-                    .ore_robot_cost
-                    .ore
-                    .max(self.blueprint.clay_robot_cost.ore)
-                    .max(self.blueprint.obsidian_robot_cost.ore)
-                    .max(self.blueprint.geode_robot_cost.ore)
+    fn can_beat_max(&self, time: usize, max: usize) -> bool {
+        let time_left = 24 - time;
+        self.resources.geodes
+            + time_left * (self.geode_robots + self.geode_robots + time_left - 1) / 2
+            > max
     }
 
-    fn can_build_clay_robot(&self) -> bool {
-        self.resources >= self.blueprint.clay_robot_cost
+    fn can_build_ore_robot(&self, time: usize, max: usize) -> bool {
+        self.can_beat_max(time, max)
+            && self.resources.ore >= self.blueprint.ore_robot_cost.ore
+            && self.ore_robots < self.highest_ore_cost
+    }
+
+    fn can_build_clay_robot(&self, time: usize, max: usize) -> bool {
+        self.can_beat_max(time, max)
+            && self.resources.ore >= self.blueprint.clay_robot_cost.ore
             && self.clay_robots < self.blueprint.obsidian_robot_cost.clay
     }
 
-    fn can_build_obsidian_robot(&self) -> bool {
-        self.resources >= self.blueprint.obsidian_robot_cost
+    fn can_build_obsidian_robot(&self, time: usize, max: usize) -> bool {
+        self.can_beat_max(time, max)
+            && self.resources.ore >= self.blueprint.obsidian_robot_cost.ore
+            && self.resources.clay >= self.blueprint.obsidian_robot_cost.clay
             && self.obsidian_robots < self.blueprint.geode_robot_cost.obsidian
     }
 
-    fn can_build_geode_robot(&self) -> bool {
-        self.resources >= self.blueprint.geode_robot_cost
+    fn can_build_geode_robot(&self, time: usize, max: usize) -> bool {
+        self.can_beat_max(time, max)
+            && self.resources.ore >= self.blueprint.geode_robot_cost.ore
+            && self.resources.obsidian >= self.blueprint.geode_robot_cost.obsidian
+    }
+
+    fn can_build_nothing(&self, time: usize, max: usize) -> bool {
+        self.can_beat_max(time, max)
     }
 
     fn build_ore_robot(mut self) -> Self {
-        self.resources -= &self.blueprint.ore_robot_cost;
+        self.resources.ore -= self.blueprint.ore_robot_cost.ore;
         self.update();
         self.ore_robots += 1;
         self
     }
 
     fn build_clay_robot(mut self) -> Self {
-        self.resources -= &self.blueprint.clay_robot_cost;
+        self.resources.ore -= self.blueprint.clay_robot_cost.ore;
         self.update();
         self.clay_robots += 1;
         self
     }
 
     fn build_obsidian_robot(mut self) -> Self {
-        self.resources -= &self.blueprint.obsidian_robot_cost;
+        self.resources.ore -= self.blueprint.obsidian_robot_cost.ore;
+        self.resources.clay -= self.blueprint.obsidian_robot_cost.clay;
         self.update();
         self.obsidian_robots += 1;
         self
     }
 
     fn build_geode_robot(mut self) -> Self {
-        self.resources -= &self.blueprint.geode_robot_cost;
+        self.resources.ore -= self.blueprint.geode_robot_cost.ore;
+        self.resources.obsidian -= self.blueprint.geode_robot_cost.obsidian;
         self.update();
         self.geode_robots += 1;
         self
@@ -216,7 +204,7 @@ impl crate::Solver for Solver {
         for (i, blueprint) in blueprints.into_iter().enumerate() {
             handles.push(thread::spawn(move || {
                 let i = i + 1;
-                let result = Factory::new(&blueprint).run(0);
+                let result = Factory::new(&blueprint).run(0, 0);
 
                 eprintln!("The quality level of blueprint {i} is {result}");
 

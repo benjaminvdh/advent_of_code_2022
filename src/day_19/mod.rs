@@ -19,7 +19,7 @@ pub struct Blueprint {
 }
 
 #[derive(Clone, Copy, Debug)]
-struct Factory<'a> {
+struct Factory<'a, const TIME_LIMIT: usize> {
     resources: Resources,
     blueprint: &'a Blueprint,
     highest_ore_cost: usize,
@@ -29,7 +29,7 @@ struct Factory<'a> {
     geode_robots: usize,
 }
 
-impl<'a> Factory<'a> {
+impl<'a, const TIME_LIMIT: usize> Factory<'a, TIME_LIMIT> {
     fn new(blueprint: &'a Blueprint) -> Self {
         Self {
             resources: Resources::default(),
@@ -48,7 +48,7 @@ impl<'a> Factory<'a> {
     }
 
     fn run(&self, time: usize, mut max: usize) -> usize {
-        if time == 24 {
+        if time == TIME_LIMIT {
             self.resources.geodes
         } else if self.can_build_geode_robot(time, max) {
             self.build_geode_robot().run(time + 1, max)
@@ -81,7 +81,7 @@ impl<'a> Factory<'a> {
     }
 
     fn can_beat_max(&self, time: usize, max: usize) -> bool {
-        let time_left = 24 - time;
+        let time_left = TIME_LIMIT - time;
         self.resources.geodes
             + time_left * (self.geode_robots + self.geode_robots + time_left - 1) / 2
             > max
@@ -204,7 +204,7 @@ impl crate::Solver for Solver {
         for (i, blueprint) in blueprints.into_iter().enumerate() {
             handles.push(thread::spawn(move || {
                 let i = i + 1;
-                let result = Factory::new(&blueprint).run(0, 0);
+                let result = Factory::<24>::new(&blueprint).run(0, 0);
 
                 eprintln!("The quality level of blueprint {i} is {result}");
 
@@ -219,6 +219,29 @@ impl crate::Solver for Solver {
         }
 
         Ok(sum)
+    }
+
+    fn part_2(blueprints: Self::Input) -> Result<Self::Output, SolveError> {
+        let mut handles = vec![];
+
+        for (i, blueprint) in blueprints.into_iter().take(3).enumerate() {
+            handles.push(thread::spawn(move || {
+                let i = i + 1;
+                let result = Factory::<32>::new(&blueprint).run(0, 0);
+
+                eprintln!("The quality level of blueprint {i} is {result}");
+
+                result
+            }));
+        }
+
+        let mut product = 1;
+
+        for handle in handles {
+            product *= handle.join().map_err(|_| SolveError::InvalidInput)?;
+        }
+
+        Ok(product)
     }
 }
 
@@ -289,5 +312,12 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
         let input = get_input();
 
         assert_eq!(super::Solver::part_1(input).unwrap(), 33);
+    }
+
+    #[test]
+    fn part_2() {
+        let input = get_input();
+
+        assert_eq!(super::Solver::part_2(input).unwrap(), 56 * 62);
     }
 }
